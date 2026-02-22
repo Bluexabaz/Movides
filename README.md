@@ -13,8 +13,8 @@ Para utilizar estos scripts, necesitas tener instalada la extensión **Tampermon
 Un inyector inteligente de interfaz que añade un menú desplegable directamente en los editores de texto. Permite insertar respuestas predefinidas y estandarizadas de forma instantánea, adaptándose al idioma necesario (ES/EN) para comunicarse con el cliente.
 
 ### ✨ Características
-* **Inyección Magnética:** Compatible con el *First Contact Control* de IT. El script detecta dónde inyectarse automáticamente (a la derecha en el *Public Log* y al lado del botón de *Insert Call Template* en *First Contact*).
-* **Soporte Global:** Funciona en cualquier pantalla de la *issue* que contenga un editor de texto activo.
+* **Inyección Magnética:** Compatible con el *First Contact*. El script detecta dónde inyectarse automáticamente (a la derecha en el *Public Log* y al lado del botón de *Insert Call Template* en *First Contact*).
+* **Soporte Global:** Funciona en cualquier pantalla de la incidencia que contenga un editor de texto activo.
 * **Multilenguaje (ES/EN):** Selector rápido para alternar el idioma de la plantilla. El idioma se guarda en memoria (`localStorage`).
 * **Seguridad anti-sobrescritura:** Si el cuadro de texto ya contiene información, pedirá confirmación antes de reemplazar el texto.
 * **Auto-actualizable:** Enlazado con GitHub para recibir mejoras automáticamente.
