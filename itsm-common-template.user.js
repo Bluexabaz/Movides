@@ -1,11 +1,14 @@
 // ==UserScript==
-// @name         ITSM – Advanced Public Log Templates (Multilanguage)
+// @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      3.0
-// @description  Selector de plantillas para el Public Log con soporte ES/EN. Motor estable.
-// @match        https://itsm.mecalux.com/pages/UI.php?operation=details&class=Incident&id=*
-// @match        https://itsm.mecalux.com/pages/UI.php?stimulus=ev_first_contact&class=Incident&operation=stimulus&id=*
+// @version      3.4
+// @description  Selector de plantillas (Common Template). Inyección magnética inteligente compatible con script TL.
+// @author       Fernando González Cienfuegos
+// @match        https://itsm.mecalux.com/pages/UI.php?*
+// @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
+// @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
 // @grant        none
+// @run-at       document-end
 // ==/UserScript==
 
 (() => {
@@ -16,8 +19,6 @@
     *********************************/
     const pubStyle = `background-color: #eaf3f8; padding: 15px; border-radius: 4px; border-left: 4px solid #3b82f6; font-family: sans-serif; color: #333; line-height: 1.5;`;
     const PUBLIC_WRAP_SEL = '[data-attribute-code="public_log"]';
-    const EXTRA_ACTIONS_SEL = '.ibo-caselog-entry-form--action-buttons--extra-actions';
-    const MAIN_ACTIONS_SEL = '.ibo-caselog-entry-form--action-buttons--main-actions';
     const LANG_KEY = 'itsm_publiclog_lang';
 
     /*********************************
@@ -338,11 +339,9 @@
         localStorage.setItem(LANG_KEY, lang);
     }
 
-    function getActivePublicEditor() {
+    function getActiveEditor() {
         if (typeof CKEDITOR === 'undefined') return null;
-        const wrap = document.querySelector(PUBLIC_WRAP_SEL);
-        if (!wrap) return null;
-        const cke = Array.from(wrap.querySelectorAll('.cke')).find(el => !!(el && el.offsetParent));
+        const cke = Array.from(document.querySelectorAll('.cke')).find(el => !!(el && el.offsetParent));
         if (!cke) return null;
         const id = cke.id.replace(/^cke_/, '');
         return CKEDITOR.instances[id] || null;
@@ -359,37 +358,79 @@
     }
 
     /*********************************
-    * 4. INYECCIÓN DEL MENÚ
+    * 4. INYECCIÓN INTELIGENTE
     *********************************/
     function injectUI() {
-        const wrap = document.querySelector(PUBLIC_WRAP_SEL);
-        if (!wrap) return;
+        let container = document.querySelector('.itsm-adv-public-templates');
 
-        const host = wrap.querySelector(EXTRA_ACTIONS_SEL) || wrap.querySelector(MAIN_ACTIONS_SEL);
-        if (!host) return;
+        // Miramos en qué pantalla estamos
+        const isPublicLog = !!document.querySelector('[data-attribute-code="public_log"]');
+        const isFirstContact = !!document.querySelector('.itsm-firstcontact-controls') || !!document.querySelector('[data-attribute-code="first_contact_reason"]');
 
-        if (host.querySelector('.itsm-adv-public-templates')) return;
+        let targetHost = null;
+        let insertMode = '';
 
-        const container = document.createElement('div');
+        if (isPublicLog) {
+            // EN PUBLIC LOG: Lo quieres a la derecha del todo (A la izquierda del botón Cancel)
+            const publicMainActions = document.querySelector('[data-attribute-code="public_log"] .ibo-caselog-entry-form--action-buttons--main-actions');
+            if (publicMainActions) {
+                targetHost = publicMainActions;
+                insertMode = 'public_right';
+            }
+        } else if (isFirstContact) {
+            // EN FIRST CONTACT: Lo quieres pegado al botón del TL ("Insert Call Template")
+            const tlFlexContainer = document.querySelector('.itsm-firstcontact-controls .itsm-publiclog-controls');
+            const tlGenericContainer = document.querySelector('.itsm-firstcontact-controls');
+
+            if (tlFlexContainer) {
+                targetHost = tlFlexContainer;
+                insertMode = 'fc_next_to_btn';
+            } else if (tlGenericContainer) {
+                targetHost = tlGenericContainer;
+                insertMode = 'fc_next_to_btn';
+            }
+        }
+
+        // Si la pantalla ha cargado rápido pero el TL aún no, lo ponemos encima del editor de forma segura temporalmente
+        if (!targetHost) {
+            const visibleEditor = Array.from(document.querySelectorAll('.cke')).find(el => !!(el && el.offsetParent));
+            if (visibleEditor) {
+                targetHost = visibleEditor.parentNode;
+                insertMode = 'fallback';
+            } else {
+                return;
+            }
+        }
+
+        // --- SISTEMA AUTOCORRECTOR: Si ya existe el contenedor pero está en el sitio equivocado (por la carrera de scripts), lo reubica ---
+        if (container) {
+            if (insertMode === 'public_right' && container.parentNode !== targetHost) {
+                targetHost.insertBefore(container, targetHost.firstChild);
+                container.style.cssText = 'display: inline-flex; align-items: center; margin-right: 15px; padding-right: 15px; border-right: 2px solid #ccc; gap: 8px;';
+            } else if (insertMode === 'fc_next_to_btn' && container.parentNode !== targetHost) {
+                targetHost.appendChild(container); // Lo manda a la derecha del botón del TL
+                container.style.cssText = 'display: inline-flex; align-items: center; margin-left: 15px; padding-left: 15px; border-left: 2px solid #ccc; gap: 8px;';
+            } else if (insertMode === 'fallback' && container.parentNode !== targetHost) {
+                targetHost.insertBefore(container, targetHost.querySelector('.cke'));
+                container.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 6px; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 4px;';
+            }
+            return; // Ya existe y ha sido reubicado correctamente, salimos
+        }
+
+        // --- CREACIÓN DEL CONTENEDOR DESDE CERO ---
+        container = document.createElement('div');
         container.className = 'itsm-adv-public-templates';
-        container.style.cssText = 'display: inline-flex; align-items: center; margin-left: 15px; border-left: 2px solid #ccc; padding-left: 15px; gap: 8px;';
 
-        // SELECTOR DE IDIOMA
         const langSelect = document.createElement('select');
         langSelect.style.cssText = 'padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; background-color: #f8fafc; cursor: pointer; font-weight: bold; height: 28px;';
         langSelect.innerHTML = `<option value="es">ES</option><option value="en">EN</option>`;
         langSelect.value = getLang();
+        langSelect.addEventListener('change', () => setLang(langSelect.value));
 
-        langSelect.addEventListener('change', () => {
-            setLang(langSelect.value);
-        });
-
-        // ETIQUETA
         const label = document.createElement('span');
-        label.innerText = 'Plantillas ITSM:';
+        label.innerText = 'Common Template:';
         label.style.cssText = 'font-size: 13px; font-weight: bold; color: #0284c7;';
 
-        // SELECTOR DE PLANTILLAS
         const select = document.createElement('select');
         select.style.cssText = 'padding: 4px; font-size: 13px; border: 1px solid #bae6fd; border-radius: 4px; background-color: #f0f9ff; color: #0c4a6e; outline: none; cursor: pointer; max-width: 250px; height: 28px;';
 
@@ -430,12 +471,8 @@
         select.addEventListener('change', () => {
             const val = select.value;
             if (val === 'empty') return;
-
-            const ed = getActivePublicEditor();
-            if (!ed) {
-                select.value = 'empty';
-                return;
-            }
+            const ed = getActiveEditor();
+            if (!ed) { select.value = 'empty'; return; }
 
             if (!isEditorEmpty(ed)) {
                 if (!confirm("El editor ya contiene texto. ¿Deseas reemplazarlo con la plantilla seleccionada?")) {
@@ -448,49 +485,50 @@
             if (TPL[currentLang] && TPL[currentLang][val]) {
                 ed.setData(TPL[currentLang][val]);
             }
-
             setTimeout(() => { select.value = 'empty'; }, 300);
         });
 
         container.appendChild(label);
         container.appendChild(langSelect);
         container.appendChild(select);
-        host.appendChild(container);
+
+        // Aplicamos la inyección final y el estilo dependiendo de dónde lo vamos a meter
+        if (insertMode === 'public_right') {
+            container.style.cssText = 'display: inline-flex; align-items: center; margin-right: 15px; padding-right: 15px; border-right: 2px solid #ccc; gap: 8px;';
+            targetHost.insertBefore(container, targetHost.firstChild);
+        } else if (insertMode === 'fc_next_to_btn') {
+            container.style.cssText = 'display: inline-flex; align-items: center; margin-left: 15px; padding-left: 15px; border-left: 2px solid #ccc; gap: 8px;';
+            targetHost.appendChild(container);
+        } else {
+            container.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 6px; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 4px;';
+            targetHost.insertBefore(container, targetHost.querySelector('.cke'));
+        }
     }
 
     /*********************************
-    * 5. MOTOR DE OBSERVACIÓN (IDÉNTICO AL ORIGINAL)
+    * 5. MOTOR DE OBSERVACIÓN
     *********************************/
     function bindEditors() {
         if (typeof CKEDITOR === 'undefined') return;
 
         if (!CKEDITOR.__itsm_adv_tpl_hooked) {
-            CKEDITOR.on('instanceReady', (evt) => {
-                const ed = evt.editor;
-                const container = document.getElementById('cke_' + ed.name);
-                if (!container) return;
-
-                const isPublic = !!container.closest(PUBLIC_WRAP_SEL);
-                if (isPublic) {
-                    injectUI();
-                }
-            });
+            CKEDITOR.on('instanceReady', () => injectUI());
             CKEDITOR.__itsm_adv_tpl_hooked = true;
         }
-
         injectUI();
     }
 
+    // El observador ahora reacciona si el script del TL inyecta algo nuevo, para revisar y corregir si es necesario
     const obs = new MutationObserver((muts) => {
         let shouldCheck = false;
         for (const m of muts) {
             for (const n of m.addedNodes) {
                 if (n.nodeType !== 1) continue;
                 if (
-                    n.id?.startsWith?.('cke_') ||
-                    n.querySelector?.('[id^="cke_"]') ||
-                    n.matches?.(PUBLIC_WRAP_SEL) ||
-                    n.querySelector?.(PUBLIC_WRAP_SEL)
+                    n.id?.startsWith?.('cke_') || n.querySelector?.('[id^="cke_"]') ||
+                    n.matches?.(PUBLIC_WRAP_SEL) || n.querySelector?.(PUBLIC_WRAP_SEL) ||
+                    n.matches?.('.itsm-firstcontact-controls') || n.querySelector?.('.itsm-firstcontact-controls') ||
+                    n.matches?.('.itsm-publiclog-controls') || n.querySelector?.('.itsm-publiclog-controls')
                 ) { shouldCheck = true; break; }
             }
             if (shouldCheck) break;
