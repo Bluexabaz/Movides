@@ -2,8 +2,11 @@
 // @name         ITSM Timesheet - Smart Paste Ultimate
 // @namespace    http://tampermonkey.net/
 // @version      3.4
-// @description  Autocompletar tiempos. Regex corregido para no borrar palabras.
-// @match        https://msscc.mecalux.com/TimeSheet
+// @description  Autocompletar tiempos simulando clics humanos para evitar bloqueos de DevExtreme.
+// @author       Fernando González Cienfuegos
+// @match        https://*.mecalux.com/*
+// @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-timesheet.user.js
+// @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-timesheet.user.js
 // @grant        none
 // ==/UserScript==
 
