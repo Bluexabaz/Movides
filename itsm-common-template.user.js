@@ -2,7 +2,7 @@
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
 // @version      3.4
-// @description  Selector de plantillas (Common Template). Inyección magnética inteligente compatible con script TL.
+// @description  Selector de plantillas (Common Template) multilenguaje.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
