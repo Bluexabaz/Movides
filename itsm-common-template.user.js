@@ -4,7 +4,7 @@
 // @version      3.4
 // @description  Selector de plantillas (Common Template) multilenguaje.
 // @author       Fernando González Cienfuegos
-// @match        https://msscc.mecalux.com/TimeSheet
+// @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
 // @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
 // @grant        none
