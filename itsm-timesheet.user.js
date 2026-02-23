@@ -4,7 +4,7 @@
 // @version      3.4
 // @description  Autocompletar tiempos simulando clics humanos para evitar bloqueos de DevExtreme.
 // @author       Fernando González Cienfuegos
-// @match        https://*.mecalux.com/*
+// @match        https://msscc.mecalux.com/TimeSheet
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-timesheet.user.js
 // @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-timesheet.user.js
 // @grant        none
