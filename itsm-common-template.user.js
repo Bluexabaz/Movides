@@ -6,7 +6,7 @@
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
-// @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js//
+// @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
