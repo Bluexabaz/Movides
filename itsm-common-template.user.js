@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      3.5
-// @description  Selector de plantillas. Corrección de traducciones (Incidencia) y responsive en modo contraído.
-// @author       [TU NOMBRE]
+// @version      3.6
+// @description  Selector de plantillas. ¡NUEVO! Auto-completado mágico de Cliente y Número de Caso.
+// @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
 // @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js// ==UserScript==
@@ -358,6 +358,38 @@
     }
 
     /*********************************
+    * NUEVO: MOTOR DE EXTRACCIÓN DE DATOS
+    *********************************/
+    function extractTicketData() {
+        let ticketNum = "[NÚM. DEL CASO]";
+        let orgName = "[NOMBRE DEL CUSTOMER]";
+
+        // 1. Extraer Número de Caso (I-XXXXXX)
+        // Usamos una expresión regular para buscar el formato I- seguido de números en el título del navegador
+        const titleMatch = document.title.match(/(I-\d{6,})/);
+        if (titleMatch) {
+            ticketNum = titleMatch[1];
+        } else {
+            // Plan B: Buscar en las cabeceras de la web
+            const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
+            if (header && header.innerText.match(/(I-\d{6,})/)) {
+                ticketNum = header.innerText.match(/(I-\d{6,})/)[1];
+            }
+        }
+
+        // 2. Extraer Cliente / Organización
+        // iTop / ITSM guarda normalmente esto bajo el atributo 'org_id'
+        const orgField = document.querySelector('[data-attribute-code="org_id"] .ibo-value--text') || 
+                         document.querySelector('[data-attribute-code="org_id"] .ibo-field-value') ||
+                         document.querySelector('[data-attribute-code="org_id"]');
+        if (orgField && orgField.innerText.trim()) {
+            orgName = orgField.innerText.trim();
+        }
+
+        return { ticketNum, orgName };
+    }
+
+    /*********************************
     * 4. INYECCIÓN INTELIGENTE
     *********************************/
     function injectUI() {
@@ -428,7 +460,6 @@
         label.style.cssText = 'font-size: 13px; font-weight: bold; color: #0284c7; white-space: nowrap;';
 
         const select = document.createElement('select');
-        // Reducido max-width a 170px para dar más espacio a los botones CANCEL y SEND
         select.style.cssText = 'padding: 4px; font-size: 13px; border: 1px solid #bae6fd; border-radius: 4px; background-color: #f0f9ff; color: #0c4a6e; outline: none; cursor: pointer; max-width: 170px; height: 28px; text-overflow: ellipsis; white-space: nowrap;';
         
         select.innerHTML = `
@@ -480,7 +511,24 @@
 
             const currentLang = langSelect.value;
             if (TPL[currentLang] && TPL[currentLang][val]) {
-                ed.setData(TPL[currentLang][val]);
+                // Obtenemos la plantilla limpia
+                let finalHtml = TPL[currentLang][val];
+                
+                // Extraemos los datos del caso de la página actual
+                const ticketData = extractTicketData();
+
+                // Hacemos la sustitución mágica usando expresiones regulares
+                // Reemplazamos [NOMBRE DEL CUSTOMER] o [CUSTOMER NAME]
+                finalHtml = finalHtml.replace(/\[NOMBRE DEL CUSTOMER\]/gi, ticketData.orgName);
+                finalHtml = finalHtml.replace(/\[CUSTOMER NAME\]/gi, ticketData.orgName);
+                
+                // Reemplazamos [NÚM. DEL CASO], [CASE NUMBER] o [I-XXXXXX]
+                finalHtml = finalHtml.replace(/\[NÚM\. DEL CASO\]/gi, ticketData.ticketNum);
+                finalHtml = finalHtml.replace(/\[CASE NUMBER\]/gi, ticketData.ticketNum);
+                finalHtml = finalHtml.replace(/\[I-XXXXXX\]/gi, ticketData.ticketNum);
+
+                // Pegamos el resultado final en el editor
+                ed.setData(finalHtml);
             }
             setTimeout(() => { select.value = 'empty'; }, 300);
         });
