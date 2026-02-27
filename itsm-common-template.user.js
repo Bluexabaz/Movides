@@ -5,8 +5,8 @@
 // @description  Selector de plantillas. Corrección del autocompletado para ignorar "Useful Links".
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
-// @updateURL    [TU_ENLACE_RAW_DE_GITHUB]
-// @downloadURL  [TU_ENLACE_RAW_DE_GITHUB]
+// @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
+// @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
