@@ -2,7 +2,7 @@
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
 // @version      3.6
-// @description  Selector de plantillas. ¡NUEVO! Auto-completado mágico de Cliente y Número de Caso.
+// @description  Selector de plantillas. ¡NUEVO! Auto-completado de Cliente y Número de Caso.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
