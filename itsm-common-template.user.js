@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      3.6
-// @description  Selector de plantillas. ¡NUEVO! Auto-completado mágico de Cliente y Número de Caso.
+// @version      3.7
+// @description  Selector de plantillas. Corrección del autocompletado para ignorar "Useful Links".
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
-// @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
-// @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
+// @updateURL    [TU_ENLACE_RAW_DE_GITHUB]
+// @downloadURL  [TU_ENLACE_RAW_DE_GITHUB]
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
@@ -176,6 +176,7 @@
                 </div>`
         },
         en: {
+            // (Mismo bloque en inglés, omitido aquí por brevedad pero inclúyelo completo en tu archivo)
             solicitar_conexion: `
                 <div style="${pubStyle}">
                     <p>Dear <strong>[CUSTOMER NAME]</strong>,</p>
@@ -358,32 +359,47 @@
     }
 
     /*********************************
-    * NUEVO: MOTOR DE EXTRACCIÓN DE DATOS
+    * NUEVO: MOTOR DE EXTRACCIÓN DE DATOS V3.7
     *********************************/
     function extractTicketData() {
         let ticketNum = "[NÚM. DEL CASO]";
         let orgName = "[NOMBRE DEL CUSTOMER]";
 
         // 1. Extraer Número de Caso (I-XXXXXX)
-        // Usamos una expresión regular para buscar el formato I- seguido de números en el título del navegador
         const titleMatch = document.title.match(/(I-\d{6,})/);
         if (titleMatch) {
             ticketNum = titleMatch[1];
         } else {
-            // Plan B: Buscar en las cabeceras de la web
             const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
             if (header && header.innerText.match(/(I-\d{6,})/)) {
                 ticketNum = header.innerText.match(/(I-\d{6,})/)[1];
             }
         }
 
-        // 2. Extraer Cliente / Organización
-        // iTop / ITSM guarda normalmente esto bajo el atributo 'org_id'
-        const orgField = document.querySelector('[data-attribute-code="org_id"] .ibo-value--text') || 
-                         document.querySelector('[data-attribute-code="org_id"] .ibo-field-value') ||
-                         document.querySelector('[data-attribute-code="org_id"]');
-        if (orgField && orgField.innerText.trim()) {
-            orgName = orgField.innerText.trim();
+        // 2. Extraer Cliente / Organización (Cazador de enlaces puros)
+        // Buscamos todos los enlaces dentro de la caja de Organización
+        let orgLinks = document.querySelectorAll('[data-attribute-code="org_id"] a');
+        let foundOrg = false;
+        
+        for (let link of orgLinks) {
+            let txt = link.innerText.trim();
+            // Si el texto del enlace existe y NO contiene la palabra "Useful" ni "Links", ¡es nuestro cliente!
+            if (txt && !txt.match(/Useful|Links|Enlaces|Útiles/i)) {
+                orgName = txt;
+                foundOrg = true;
+                break; // Paramos de buscar
+            }
+        }
+
+        // Plan de emergencia: por si la página carga raro y el cliente no tiene enlace
+        if (!foundOrg) {
+            let fallbackContainer = document.querySelector('[data-attribute-code="org_id"] .ibo-field--value') || 
+                                    document.querySelector('[data-attribute-code="org_id"] .ibo-value');
+            if (fallbackContainer) {
+                // Cogemos el texto de la caja pero le borramos el botón "Useful Links" si se coló
+                let rawText = fallbackContainer.innerText.replace(/Useful Links/gi, '').replace(/Enlaces útiles/gi, '').trim();
+                if (rawText) orgName = rawText;
+            }
         }
 
         return { ticketNum, orgName };
@@ -511,23 +527,15 @@
 
             const currentLang = langSelect.value;
             if (TPL[currentLang] && TPL[currentLang][val]) {
-                // Obtenemos la plantilla limpia
                 let finalHtml = TPL[currentLang][val];
-                
-                // Extraemos los datos del caso de la página actual
                 const ticketData = extractTicketData();
 
-                // Hacemos la sustitución mágica usando expresiones regulares
-                // Reemplazamos [NOMBRE DEL CUSTOMER] o [CUSTOMER NAME]
                 finalHtml = finalHtml.replace(/\[NOMBRE DEL CUSTOMER\]/gi, ticketData.orgName);
                 finalHtml = finalHtml.replace(/\[CUSTOMER NAME\]/gi, ticketData.orgName);
-                
-                // Reemplazamos [NÚM. DEL CASO], [CASE NUMBER] o [I-XXXXXX]
                 finalHtml = finalHtml.replace(/\[NÚM\. DEL CASO\]/gi, ticketData.ticketNum);
                 finalHtml = finalHtml.replace(/\[CASE NUMBER\]/gi, ticketData.ticketNum);
                 finalHtml = finalHtml.replace(/\[I-XXXXXX\]/gi, ticketData.ticketNum);
 
-                // Pegamos el resultado final en el editor
                 ed.setData(finalHtml);
             }
             setTimeout(() => { select.value = 'empty'; }, 300);
