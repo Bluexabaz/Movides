@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      3.4
-// @description  Selector de plantillas (Common Template) multilenguaje.
-// @author       Fernando González Cienfuegos
+// @version      3.5
+// @description  Selector de plantillas. Corrección de traducciones (Incidencia) y responsive en modo contraído.
+// @author       [TU NOMBRE]
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
-// @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
+// @downloadURL  https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js// ==UserScript==
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
