@@ -29,7 +29,7 @@
             solicitar_conexion: `
                 <div style="${pubStyle}">
                     <p>Estimado/a <strong>[NOMBRE DEL CUSTOMER]</strong>,</p>
-                    <p>Nos ponemos en contacto con ustedes para solicitar el acceso remoto al servidor <strong>[NOMBRE DEL SERVIDOR]</strong> con el fin de revisar la issue <strong>[NÚM. DEL CASO]</strong> que nos ha comunicado [NOMBRE Y APELLIDOS DEL CALLER].</p>
+                    <p>Nos ponemos en contacto con ustedes para solicitar el acceso remoto al servidor <strong>[NOMBRE DEL SERVIDOR]</strong> con el fin de revisar la incidencia <strong>[NÚM. DEL CASO]</strong> que nos ha comunicado [NOMBRE Y APELLIDOS DEL CALLER].</p>
                     <p><strong>Detalles de la conexión:</strong></p>
                     <ul>
                         <li><strong>Motivo:</strong> [BREVE EXPLICACIÓN DE LA REVISIÓN]</li>
@@ -42,7 +42,7 @@
             informar_conexion_sin_confirmacion: `
                 <div style="${pubStyle}">
                     <p>Estimado/a <strong>[NOMBRE DEL CUSTOMER]</strong>,</p>
-                    <p>Le informamos que procederemos a conectarnos al servidor <strong>[NOMBRE DEL SERVIDOR]</strong> para llevar a cabo la revisión de la issue <strong>[I-XXXXXX]</strong>, reportada el <strong>[FECHA DE REPORTE]</strong>.</p>
+                    <p>Le informamos que procederemos a conectarnos al servidor <strong>[NOMBRE DEL SERVIDOR]</strong> para llevar a cabo la revisión de la incidencia <strong>[I-XXXXXX]</strong>, reportada el <strong>[FECHA DE REPORTE]</strong>.</p>
                     <p><strong>Detalles de la conexión:</strong></p>
                     <ul>
                         <li><strong>Motivo:</strong> [BREVE EXPLICACIÓN DE LA REVISIÓN]</li>
@@ -363,7 +363,6 @@
     function injectUI() {
         let container = document.querySelector('.itsm-adv-public-templates');
 
-        // Miramos en qué pantalla estamos
         const isPublicLog = !!document.querySelector('[data-attribute-code="public_log"]');
         const isFirstContact = !!document.querySelector('.itsm-firstcontact-controls') || !!document.querySelector('[data-attribute-code="first_contact_reason"]');
 
@@ -371,17 +370,15 @@
         let insertMode = '';
 
         if (isPublicLog) {
-            // EN PUBLIC LOG: Lo quieres a la derecha del todo (A la izquierda del botón Cancel)
             const publicMainActions = document.querySelector('[data-attribute-code="public_log"] .ibo-caselog-entry-form--action-buttons--main-actions');
             if (publicMainActions) {
                 targetHost = publicMainActions;
                 insertMode = 'public_right';
             }
         } else if (isFirstContact) {
-            // EN FIRST CONTACT: Lo quieres pegado al botón del TL ("Insert Call Template")
             const tlFlexContainer = document.querySelector('.itsm-firstcontact-controls .itsm-publiclog-controls');
             const tlGenericContainer = document.querySelector('.itsm-firstcontact-controls');
-
+            
             if (tlFlexContainer) {
                 targetHost = tlFlexContainer;
                 insertMode = 'fc_next_to_btn';
@@ -391,7 +388,6 @@
             }
         }
 
-        // Si la pantalla ha cargado rápido pero el TL aún no, lo ponemos encima del editor de forma segura temporalmente
         if (!targetHost) {
             const visibleEditor = Array.from(document.querySelectorAll('.cke')).find(el => !!(el && el.offsetParent));
             if (visibleEditor) {
@@ -402,38 +398,39 @@
             }
         }
 
-        // --- SISTEMA AUTOCORRECTOR: Si ya existe el contenedor pero está en el sitio equivocado (por la carrera de scripts), lo reubica ---
         if (container) {
             if (insertMode === 'public_right' && container.parentNode !== targetHost) {
                 targetHost.insertBefore(container, targetHost.firstChild);
-                container.style.cssText = 'display: inline-flex; align-items: center; margin-right: 15px; padding-right: 15px; border-right: 2px solid #ccc; gap: 8px;';
+                container.style.cssText = 'display: inline-flex; align-items: center; margin-right: 10px; padding-right: 10px; border-right: 2px solid #ccc; gap: 6px; flex-shrink: 1;';
+                targetHost.style.flexWrap = 'wrap'; 
+                targetHost.style.rowGap = '5px';
             } else if (insertMode === 'fc_next_to_btn' && container.parentNode !== targetHost) {
-                targetHost.appendChild(container); // Lo manda a la derecha del botón del TL
+                targetHost.appendChild(container); 
                 container.style.cssText = 'display: inline-flex; align-items: center; margin-left: 15px; padding-left: 15px; border-left: 2px solid #ccc; gap: 8px;';
             } else if (insertMode === 'fallback' && container.parentNode !== targetHost) {
                 targetHost.insertBefore(container, targetHost.querySelector('.cke'));
                 container.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 6px; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 4px;';
             }
-            return; // Ya existe y ha sido reubicado correctamente, salimos
+            return;
         }
 
-        // --- CREACIÓN DEL CONTENEDOR DESDE CERO ---
         container = document.createElement('div');
         container.className = 'itsm-adv-public-templates';
 
         const langSelect = document.createElement('select');
-        langSelect.style.cssText = 'padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; background-color: #f8fafc; cursor: pointer; font-weight: bold; height: 28px;';
+        langSelect.style.cssText = 'padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; background-color: #f8fafc; cursor: pointer; font-weight: bold; height: 28px; flex-shrink: 0;';
         langSelect.innerHTML = `<option value="es">ES</option><option value="en">EN</option>`;
         langSelect.value = getLang();
         langSelect.addEventListener('change', () => setLang(langSelect.value));
 
         const label = document.createElement('span');
         label.innerText = 'Common Template:';
-        label.style.cssText = 'font-size: 13px; font-weight: bold; color: #0284c7;';
+        label.style.cssText = 'font-size: 13px; font-weight: bold; color: #0284c7; white-space: nowrap;';
 
         const select = document.createElement('select');
-        select.style.cssText = 'padding: 4px; font-size: 13px; border: 1px solid #bae6fd; border-radius: 4px; background-color: #f0f9ff; color: #0c4a6e; outline: none; cursor: pointer; max-width: 250px; height: 28px;';
-
+        // Reducido max-width a 170px para dar más espacio a los botones CANCEL y SEND
+        select.style.cssText = 'padding: 4px; font-size: 13px; border: 1px solid #bae6fd; border-radius: 4px; background-color: #f0f9ff; color: #0c4a6e; outline: none; cursor: pointer; max-width: 170px; height: 28px; text-overflow: ellipsis; white-space: nowrap;';
+        
         select.innerHTML = `
             <option value="empty">-- Seleccionar --</option>
             <optgroup label="Solicitar Conexión">
@@ -491,10 +488,11 @@
         container.appendChild(label);
         container.appendChild(langSelect);
         container.appendChild(select);
-
-        // Aplicamos la inyección final y el estilo dependiendo de dónde lo vamos a meter
+        
         if (insertMode === 'public_right') {
-            container.style.cssText = 'display: inline-flex; align-items: center; margin-right: 15px; padding-right: 15px; border-right: 2px solid #ccc; gap: 8px;';
+            container.style.cssText = 'display: inline-flex; align-items: center; margin-right: 10px; padding-right: 10px; border-right: 2px solid #ccc; gap: 6px; flex-shrink: 1;';
+            targetHost.style.flexWrap = 'wrap'; 
+            targetHost.style.rowGap = '5px';
             targetHost.insertBefore(container, targetHost.firstChild);
         } else if (insertMode === 'fc_next_to_btn') {
             container.style.cssText = 'display: inline-flex; align-items: center; margin-left: 15px; padding-left: 15px; border-left: 2px solid #ccc; gap: 8px;';
@@ -518,7 +516,6 @@
         injectUI();
     }
 
-    // El observador ahora reacciona si el script del TL inyecta algo nuevo, para revisar y corregir si es necesario
     const obs = new MutationObserver((muts) => {
         let shouldCheck = false;
         for (const m of muts) {
