@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      3.7
-// @description  Selector de plantillas. Corrección del autocompletado para ignorar "Useful Links".
+// @version      3.8
+// @description  Selector de plantillas. Autocompletado actualizado.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
@@ -176,7 +176,6 @@
                 </div>`
         },
         en: {
-            // (Mismo bloque en inglés, omitido aquí por brevedad pero inclúyelo completo en tu archivo)
             solicitar_conexion: `
                 <div style="${pubStyle}">
                     <p>Dear <strong>[CUSTOMER NAME]</strong>,</p>
@@ -359,11 +358,11 @@
     }
 
     /*********************************
-    * NUEVO: MOTOR DE EXTRACCIÓN DE DATOS V3.7
+    * NUEVO: MOTOR DE EXTRACCIÓN DE DATOS V3.8
     *********************************/
     function extractTicketData() {
         let ticketNum = "[NÚM. DEL CASO]";
-        let orgName = "[NOMBRE DEL CUSTOMER]";
+        let callerName = "[NOMBRE DEL CUSTOMER]";
 
         // 1. Extraer Número de Caso (I-XXXXXX)
         const titleMatch = document.title.match(/(I-\d{6,})/);
@@ -376,33 +375,31 @@
             }
         }
 
-        // 2. Extraer Cliente / Organización (Cazador de enlaces puros)
-        // Buscamos todos los enlaces dentro de la caja de Organización
-        let orgLinks = document.querySelectorAll('[data-attribute-code="org_id"] a');
-        let foundOrg = false;
+        // 2. Extraer Caller (Quien reporta la incidencia)
+        // Buscamos el campo caller_id o contact_id que es donde se aloja el enlace con el nombre
+        let callerLinks = document.querySelectorAll('[data-attribute-code="caller_id"] a, [data-attribute-code="contact_id"] a');
+        let foundCaller = false;
         
-        for (let link of orgLinks) {
+        for (let link of callerLinks) {
             let txt = link.innerText.trim();
-            // Si el texto del enlace existe y NO contiene la palabra "Useful" ni "Links", ¡es nuestro cliente!
-            if (txt && !txt.match(/Useful|Links|Enlaces|Útiles/i)) {
-                orgName = txt;
-                foundOrg = true;
-                break; // Paramos de buscar
+            if (txt) {
+                callerName = txt; // Pillará directamente "Carlos Ruiz Pérez (KU)"
+                foundCaller = true;
+                break; 
             }
         }
 
-        // Plan de emergencia: por si la página carga raro y el cliente no tiene enlace
-        if (!foundOrg) {
-            let fallbackContainer = document.querySelector('[data-attribute-code="org_id"] .ibo-field--value') || 
-                                    document.querySelector('[data-attribute-code="org_id"] .ibo-value');
+        // Plan de emergencia: por si la página carga raro y el caller no es un enlace
+        if (!foundCaller) {
+            let fallbackContainer = document.querySelector('[data-attribute-code="caller_id"] .ibo-field--value') || 
+                                    document.querySelector('[data-attribute-code="caller_id"] .ibo-value');
             if (fallbackContainer) {
-                // Cogemos el texto de la caja pero le borramos el botón "Useful Links" si se coló
-                let rawText = fallbackContainer.innerText.replace(/Useful Links/gi, '').replace(/Enlaces útiles/gi, '').trim();
-                if (rawText) orgName = rawText;
+                let rawText = fallbackContainer.innerText.trim();
+                if (rawText) callerName = rawText;
             }
         }
 
-        return { ticketNum, orgName };
+        return { ticketNum, callerName };
     }
 
     /*********************************
@@ -530,8 +527,15 @@
                 let finalHtml = TPL[currentLang][val];
                 const ticketData = extractTicketData();
 
-                finalHtml = finalHtml.replace(/\[NOMBRE DEL CUSTOMER\]/gi, ticketData.orgName);
-                finalHtml = finalHtml.replace(/\[CUSTOMER NAME\]/gi, ticketData.orgName);
+                // Reemplazamos [NOMBRE DEL CUSTOMER] por el Caller (Carlos Ruiz Pérez)
+                finalHtml = finalHtml.replace(/\[NOMBRE DEL CUSTOMER\]/gi, ticketData.callerName);
+                finalHtml = finalHtml.replace(/\[CUSTOMER NAME\]/gi, ticketData.callerName);
+                
+                // Reemplazamos también [NOMBRE Y APELLIDOS DEL CALLER] por si aparece en alguna plantilla
+                finalHtml = finalHtml.replace(/\[NOMBRE Y APELLIDOS DEL CALLER\]/gi, ticketData.callerName);
+                finalHtml = finalHtml.replace(/\[CALLER NAME\]/gi, ticketData.callerName);
+
+                // Reemplazamos el número de caso
                 finalHtml = finalHtml.replace(/\[NÚM\. DEL CASO\]/gi, ticketData.ticketNum);
                 finalHtml = finalHtml.replace(/\[CASE NUMBER\]/gi, ticketData.ticketNum);
                 finalHtml = finalHtml.replace(/\[I-XXXXXX\]/gi, ticketData.ticketNum);
