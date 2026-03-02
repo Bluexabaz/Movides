@@ -2,7 +2,7 @@
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
 // @version      3.8
-// @description  Selector de plantillas. Autocompletado actualizado.
+// @description  Selector de plantillas. Autocompletado actualizado y corregido.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
