@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      3.8
-// @description  Selector de plantillas. Autocompletado actualizado y corregido.
+// @version      3.9
+// @description  Selector de plantillas. ¡NUEVO! Sistema de "Memoria" para autocompletar el First Contact.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
@@ -358,44 +358,63 @@
     }
 
     /*********************************
-    * NUEVO: MOTOR DE EXTRACCIÓN DE DATOS V3.8
+    * NUEVO: MOTOR DE EXTRACCIÓN V3.9 (CON MEMORIA)
     *********************************/
     function extractTicketData() {
         let ticketNum = "[NÚM. DEL CASO]";
         let callerName = "[NOMBRE DEL CUSTOMER]";
 
-        // 1. Extraer Número de Caso (I-XXXXXX)
+        // 1. Extraer Número de Caso (Mejorado para First Contact)
+        const fcHeaderMatch = document.body.innerText.match(/First Contact\s*-\s*(I-\d{6,})/i);
         const titleMatch = document.title.match(/(I-\d{6,})/);
-        if (titleMatch) {
+        const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
+
+        if (fcHeaderMatch) {
+            ticketNum = fcHeaderMatch[1];
+        } else if (titleMatch) {
             ticketNum = titleMatch[1];
-        } else {
-            const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
-            if (header && header.innerText.match(/(I-\d{6,})/)) {
-                ticketNum = header.innerText.match(/(I-\d{6,})/)[1];
-            }
+        } else if (header && header.innerText.match(/(I-\d{6,})/)) {
+            ticketNum = header.innerText.match(/(I-\d{6,})/)[1];
         }
 
-        // 2. Extraer Caller (Quien reporta la incidencia)
-        // Buscamos el campo caller_id o contact_id que es donde se aloja el enlace con el nombre
+        // 2. Extraer Caller
         let callerLinks = document.querySelectorAll('[data-attribute-code="caller_id"] a, [data-attribute-code="contact_id"] a');
         let foundCaller = false;
         
         for (let link of callerLinks) {
             let txt = link.innerText.trim();
             if (txt) {
-                callerName = txt; // Pillará directamente "Carlos Ruiz Pérez (KU)"
+                callerName = txt;
                 foundCaller = true;
                 break; 
             }
         }
 
-        // Plan de emergencia: por si la página carga raro y el caller no es un enlace
         if (!foundCaller) {
             let fallbackContainer = document.querySelector('[data-attribute-code="caller_id"] .ibo-field--value') || 
                                     document.querySelector('[data-attribute-code="caller_id"] .ibo-value');
             if (fallbackContainer) {
                 let rawText = fallbackContainer.innerText.trim();
-                if (rawText) callerName = rawText;
+                if (rawText) {
+                    callerName = rawText;
+                    foundCaller = true;
+                }
+            }
+        }
+
+        // 3. LA MAGIA DE LA MEMORIA (localStorage)
+        if (foundCaller && ticketNum !== "[NÚM. DEL CASO]") {
+            // Si lo encontramos en la pantalla normal, lo guardamos
+            localStorage.setItem('itsm_memory_ticket', ticketNum);
+            localStorage.setItem('itsm_memory_caller', callerName);
+        } else {
+            // Si NO lo encontramos (ej: estamos en el First Contact modal), tiramos de memoria
+            let savedTicket = localStorage.getItem('itsm_memory_ticket');
+            let savedCaller = localStorage.getItem('itsm_memory_caller');
+            
+            // Solo usamos la memoria si coincide con el ticket en el que estamos
+            if (savedTicket === ticketNum && savedCaller) {
+                callerName = savedCaller;
             }
         }
 
@@ -525,17 +544,14 @@
             const currentLang = langSelect.value;
             if (TPL[currentLang] && TPL[currentLang][val]) {
                 let finalHtml = TPL[currentLang][val];
+                // Extraemos los datos haciendo uso de la memoria si hace falta
                 const ticketData = extractTicketData();
 
-                // Reemplazamos [NOMBRE DEL CUSTOMER] por el Caller (Carlos Ruiz Pérez)
+                // Reemplazos de Caller y Caso
                 finalHtml = finalHtml.replace(/\[NOMBRE DEL CUSTOMER\]/gi, ticketData.callerName);
                 finalHtml = finalHtml.replace(/\[CUSTOMER NAME\]/gi, ticketData.callerName);
-                
-                // Reemplazamos también [NOMBRE Y APELLIDOS DEL CALLER] por si aparece en alguna plantilla
                 finalHtml = finalHtml.replace(/\[NOMBRE Y APELLIDOS DEL CALLER\]/gi, ticketData.callerName);
                 finalHtml = finalHtml.replace(/\[CALLER NAME\]/gi, ticketData.callerName);
-
-                // Reemplazamos el número de caso
                 finalHtml = finalHtml.replace(/\[NÚM\. DEL CASO\]/gi, ticketData.ticketNum);
                 finalHtml = finalHtml.replace(/\[CASE NUMBER\]/gi, ticketData.ticketNum);
                 finalHtml = finalHtml.replace(/\[I-XXXXXX\]/gi, ticketData.ticketNum);
@@ -596,6 +612,8 @@
     function boot() {
         obs.observe(document.body, { childList: true, subtree: true });
         bindEditors();
+        // Disparamos la extracción al cargar para ir alimentando la memoria
+        setTimeout(extractTicketData, 1500); 
     }
 
     if (document.readyState === 'loading') {
