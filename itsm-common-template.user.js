@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      3.9
-// @description  Selector de plantillas. ¡NUEVO! Sistema de "Memoria" para autocompletar el First Contact.
+// @version      4.0
+// @description  Selector de plantillas. Eliminados los campos manuales de Servidor y Fecha de Reporte por textos estándar.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
@@ -29,7 +29,7 @@
             solicitar_conexion: `
                 <div style="${pubStyle}">
                     <p>Estimado/a <strong>[NOMBRE DEL CUSTOMER]</strong>,</p>
-                    <p>Nos ponemos en contacto con ustedes para solicitar el acceso remoto al servidor <strong>[NOMBRE DEL SERVIDOR]</strong> con el fin de revisar la incidencia <strong>[NÚM. DEL CASO]</strong> que nos ha comunicado [NOMBRE Y APELLIDOS DEL CALLER].</p>
+                    <p>Nos ponemos en contacto con ustedes para solicitar el acceso remoto al <strong>servidor principal</strong> con el fin de revisar la incidencia <strong>[NÚM. DEL CASO]</strong> que nos ha comunicado [NOMBRE Y APELLIDOS DEL CALLER].</p>
                     <p><strong>Detalles de la conexión:</strong></p>
                     <ul>
                         <li><strong>Motivo:</strong> [BREVE EXPLICACIÓN DE LA REVISIÓN]</li>
@@ -42,7 +42,7 @@
             informar_conexion_sin_confirmacion: `
                 <div style="${pubStyle}">
                     <p>Estimado/a <strong>[NOMBRE DEL CUSTOMER]</strong>,</p>
-                    <p>Le informamos que procederemos a conectarnos al servidor <strong>[NOMBRE DEL SERVIDOR]</strong> para llevar a cabo la revisión de la incidencia <strong>[I-XXXXXX]</strong>, reportada el <strong>[FECHA DE REPORTE]</strong>.</p>
+                    <p>Le informamos que procederemos a conectarnos al <strong>servidor principal</strong> para llevar a cabo la revisión de la incidencia <strong>[I-XXXXXX]</strong>.</p>
                     <p><strong>Detalles de la conexión:</strong></p>
                     <ul>
                         <li><strong>Motivo:</strong> [BREVE EXPLICACIÓN DE LA REVISIÓN]</li>
@@ -179,7 +179,7 @@
             solicitar_conexion: `
                 <div style="${pubStyle}">
                     <p>Dear <strong>[CUSTOMER NAME]</strong>,</p>
-                    <p>We are contacting you to request remote access to the <strong>[SERVER NAME]</strong> server in order to review the issue <strong>[CASE NUMBER]</strong> reported by [CALLER NAME].</p>
+                    <p>We are contacting you to request remote access to the <strong>main server</strong> in order to review the issue <strong>[CASE NUMBER]</strong> reported by [CALLER NAME].</p>
                     <p><strong>Connection details:</strong></p>
                     <ul>
                         <li><strong>Reason:</strong> [BRIEF EXPLANATION OF THE REVIEW]</li>
@@ -192,7 +192,7 @@
             informar_conexion_sin_confirmacion: `
                 <div style="${pubStyle}">
                     <p>Dear <strong>[CUSTOMER NAME]</strong>,</p>
-                    <p>We would like to inform you that we will be connecting to the <strong>[SERVER NAME]</strong> server to carry out the review of the issue <strong>[I-XXXXXX]</strong>, reported on <strong>[REPORT DATE]</strong>.</p>
+                    <p>We would like to inform you that we will be connecting to the <strong>main server</strong> to carry out the review of the issue <strong>[I-XXXXXX]</strong>.</p>
                     <p><strong>Connection details:</strong></p>
                     <ul>
                         <li><strong>Reason:</strong> [BRIEF EXPLANATION OF THE REVIEW]</li>
@@ -358,13 +358,13 @@
     }
 
     /*********************************
-    * NUEVO: MOTOR DE EXTRACCIÓN V3.9 (CON MEMORIA)
+    * NUEVO: MOTOR DE EXTRACCIÓN V4.0 (CON MEMORIA)
     *********************************/
     function extractTicketData() {
         let ticketNum = "[NÚM. DEL CASO]";
         let callerName = "[NOMBRE DEL CUSTOMER]";
 
-        // 1. Extraer Número de Caso (Mejorado para First Contact)
+        // 1. Extraer Número de Caso
         const fcHeaderMatch = document.body.innerText.match(/First Contact\s*-\s*(I-\d{6,})/i);
         const titleMatch = document.title.match(/(I-\d{6,})/);
         const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
@@ -402,17 +402,14 @@
             }
         }
 
-        // 3. LA MAGIA DE LA MEMORIA (localStorage)
+        // 3. Memoria
         if (foundCaller && ticketNum !== "[NÚM. DEL CASO]") {
-            // Si lo encontramos en la pantalla normal, lo guardamos
             localStorage.setItem('itsm_memory_ticket', ticketNum);
             localStorage.setItem('itsm_memory_caller', callerName);
         } else {
-            // Si NO lo encontramos (ej: estamos en el First Contact modal), tiramos de memoria
             let savedTicket = localStorage.getItem('itsm_memory_ticket');
             let savedCaller = localStorage.getItem('itsm_memory_caller');
             
-            // Solo usamos la memoria si coincide con el ticket en el que estamos
             if (savedTicket === ticketNum && savedCaller) {
                 callerName = savedCaller;
             }
@@ -544,10 +541,8 @@
             const currentLang = langSelect.value;
             if (TPL[currentLang] && TPL[currentLang][val]) {
                 let finalHtml = TPL[currentLang][val];
-                // Extraemos los datos haciendo uso de la memoria si hace falta
                 const ticketData = extractTicketData();
 
-                // Reemplazos de Caller y Caso
                 finalHtml = finalHtml.replace(/\[NOMBRE DEL CUSTOMER\]/gi, ticketData.callerName);
                 finalHtml = finalHtml.replace(/\[CUSTOMER NAME\]/gi, ticketData.callerName);
                 finalHtml = finalHtml.replace(/\[NOMBRE Y APELLIDOS DEL CALLER\]/gi, ticketData.callerName);
@@ -612,7 +607,6 @@
     function boot() {
         obs.observe(document.body, { childList: true, subtree: true });
         bindEditors();
-        // Disparamos la extracción al cargar para ir alimentando la memoria
         setTimeout(extractTicketData, 1500); 
     }
 
