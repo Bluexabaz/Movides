@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      4.0
-// @description  Selector de plantillas. Eliminados los campos manuales de Servidor y Fecha de Reporte por textos estándar.
+// @version      4.1
+// @description  Selector de plantillas. Añadida unificación de incidencias y ajustes en observaciones (N/A).
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
@@ -46,10 +46,19 @@
                     <p><strong>Detalles de la conexión:</strong></p>
                     <ul>
                         <li><strong>Motivo:</strong> [BREVE EXPLICACIÓN DE LA REVISIÓN]</li>
-                        <li><strong>Observaciones:</strong> [SI APLICA, INCLUIR CUALQUIER REQUERIMIENTO O ADVERTENCIA]</li>
+                        <li><strong>Observaciones:</strong> N/A</li>
                     </ul>
                     <p>Le mantendremos informado/a sobre el avance de la revisión y cualquier acción correctiva que sea necesaria. En caso de que requiera coordinar algún detalle adicional, no dude en comunicarse con nosotros.</p>
                     <p>Agradecemos su colaboración y quedamos a su disposición para cualquier consulta.</p>
+                </div>`,
+            unificar_incidencias: `
+                <div style="${pubStyle}">
+                    <p>Buenos días, <strong>[NOMBRE DEL CUSTOMER]</strong>:</p>
+                    <p>Tras revisar detalladamente su caso, hemos comprobado que la incidencia corresponde a la misma casuística que la reportada en el ticket <strong>[I-XXXXXX_PRINCIPAL]</strong>.</p>
+                    <p>Para poder ofrecerles un mejor seguimiento y mantener toda la información centralizada, hemos procedido a unificar ambas peticiones. Por este motivo, este ticket quedará cerrado y continuaremos gestionando la resolución directamente desde el ticket principal (<strong>[I-XXXXXX_PRINCIPAL]</strong>).</p>
+                    <p>Les agradecemos mucho su colaboración. En cuanto tengamos cualquier novedad, les informaremos de inmediato a través de dicho hilo para mantenerles al tanto de nuestros progresos.</p>
+                    <p>Reciban un cordial saludo,</p>
+                    <p>Mecalux Software Solution</p>
                 </div>`,
             nuevos_ejemplos_propuesta_1: `
                 <div style="${pubStyle}">
@@ -196,10 +205,19 @@
                     <p><strong>Connection details:</strong></p>
                     <ul>
                         <li><strong>Reason:</strong> [BRIEF EXPLANATION OF THE REVIEW]</li>
-                        <li><strong>Remarks:</strong> [IF APPLICABLE, INCLUDE ANY REQUIREMENT OR WARNING]</li>
+                        <li><strong>Remarks:</strong> N/A</li>
                     </ul>
                     <p>We will keep you informed about the progress of the review and any corrective actions that may be necessary. Should you need to coordinate any additional details, please do not hesitate to contact us.</p>
                     <p>We appreciate your cooperation and remain at your disposal for any queries.</p>
+                </div>`,
+            unificar_incidencias: `
+                <div style="${pubStyle}">
+                    <p>Good morning, <strong>[CUSTOMER NAME]</strong>,</p>
+                    <p>After a thorough review of this case, we have determined that the issue corresponds to the same situation reported in ticket <strong>[I-XXXXXX_PRINCIPAL]</strong>.</p>
+                    <p>In order to provide you with the best possible follow-up and keep all information centralized, we have merged both requests. Therefore, this current ticket will be closed, and we will continue managing the resolution entirely through the main ticket (<strong>[I-XXXXXX_PRINCIPAL]</strong>).</p>
+                    <p>We greatly appreciate your cooperation. As soon as we have any updates, we will notify you immediately via the main thread to keep you informed of our progress.</p>
+                    <p>Best regards,</p>
+                    <p>Mecalux Software Solution</p>
                 </div>`,
             nuevos_ejemplos_propuesta_1: `
                 <div style="${pubStyle}">
@@ -358,13 +376,12 @@
     }
 
     /*********************************
-    * NUEVO: MOTOR DE EXTRACCIÓN V4.0 (CON MEMORIA)
+    * MOTOR DE EXTRACCIÓN V4.1 (CON MEMORIA)
     *********************************/
     function extractTicketData() {
         let ticketNum = "[NÚM. DEL CASO]";
         let callerName = "[NOMBRE DEL CUSTOMER]";
 
-        // 1. Extraer Número de Caso
         const fcHeaderMatch = document.body.innerText.match(/First Contact\s*-\s*(I-\d{6,})/i);
         const titleMatch = document.title.match(/(I-\d{6,})/);
         const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
@@ -377,7 +394,6 @@
             ticketNum = header.innerText.match(/(I-\d{6,})/)[1];
         }
 
-        // 2. Extraer Caller
         let callerLinks = document.querySelectorAll('[data-attribute-code="caller_id"] a, [data-attribute-code="contact_id"] a');
         let foundCaller = false;
         
@@ -402,7 +418,6 @@
             }
         }
 
-        // 3. Memoria
         if (foundCaller && ticketNum !== "[NÚM. DEL CASO]") {
             localStorage.setItem('itsm_memory_ticket', ticketNum);
             localStorage.setItem('itsm_memory_caller', callerName);
@@ -495,7 +510,10 @@
             <option value="empty">-- Seleccionar --</option>
             <optgroup label="Solicitar Conexión">
                 <option value="solicitar_conexion">Pedir Confirmación</option>
-                <option value="informar_conexion_sin_confirmacion">Solo Informar</option>
+                <option value="informar_conexion_sin_confirmacion">Solo Informar (N/A)</option>
+            </optgroup>
+            <optgroup label="Cierre / Unificación">
+                <option value="unificar_incidencias">Unificación por Duplicado</option>
             </optgroup>
             <optgroup label="Nuevos Ejemplos">
                 <option value="nuevos_ejemplos_propuesta_1">Propuesta 1 (Pedir ejemplo)</option>
