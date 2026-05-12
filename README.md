@@ -6,6 +6,10 @@ Este repositorio contiene una colección de scripts de Tampermonkey (JavaScript)
 
 Para utilizar estos scripts, necesitas tener instalada la extensión **Tampermonkey** en tu navegador web. Si quieres instalar los scripts directamente, haz clic en los enlaces de cada sección.
 
+| Script | Enlace de Instalación |
+| :--- | :--- |
+| **Common Template (v4.1)** | [📥 Instalar Script](https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js) |
+| **Timesheet Auto** | [📥 Instalar Script](https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-timesheet.user.js) |
 ---
 
 ## 📄 Script 1: ITSM Common Template (Multilanguage)
@@ -13,11 +17,12 @@ Para utilizar estos scripts, necesitas tener instalada la extensión **Tampermon
 Un inyector inteligente de interfaz que añade un menú desplegable directamente en los editores de texto. Permite insertar respuestas predefinidas y estandarizadas de forma instantánea, adaptándose al idioma necesario (ES/EN) para comunicarse con el cliente.
 
 ### ✨ Características
-* **Inyección Magnética:** Compatible con el *First Contact*. El script detecta dónde inyectarse automáticamente (a la derecha en el *Public Log* y al lado del botón de *Insert Call Template* en *First Contact*).
-* **Soporte Global:** Funciona en cualquier pantalla de la incidencia que contenga un editor de texto activo.
-* **Multilenguaje (ES/EN):** Selector rápido para alternar el idioma de la plantilla. El idioma se guarda en memoria (`localStorage`).
-* **Seguridad anti-sobrescritura:** Si el cuadro de texto ya contiene información, pedirá confirmación antes de reemplazar el texto.
-* **Auto-actualizable:** Enlazado con GitHub para recibir mejoras automáticamente.
+* **🚀 Autocompletado Inteligente:** Detecta automáticamente el nombre del **Caller** y el número de incidencia (**I-XXXXXX**) para insertarlos en el saludo.
+* **🧠 Memoria Local:** Gracias a la persistencia de datos, el script "recuerda" la información del ticket incluso al abrir ventanas emergentes o modales donde la información no es visible.
+* **🌍 Multilingüe:** Soporte completo para plantillas en **Castellano** e **Inglés**.
+* **📂 Nuevas Funciones v4.1:** * Plantilla de **Unificación de Incidencias** (para cierres por duplicidad).
+    * Estandarización de **"Servidor Principal"** para evitar tecleos manuales.
+    * Ajuste automático de observaciones (**N/A**) en avisos de conexión.
 
 ### ⚙️ Configuración y Modificación
 Para añadir o modificar plantillas, edita el objeto `TPL` dentro del código fuente. Mantén la estructura de llaves por idioma (`es`, `en`).
