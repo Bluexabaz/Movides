@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM - Change Templates Automator (Visual Panel)
 // @namespace    http://tampermonkey.net/
-// @version      3.2
-// @description  Generador Bilingüe. Añadido paso de creación de rama GIT en Previous Actions.
+// @version      3.3
+// @description  Ajustes en Special Attention, Next Actions (Indicador PRE/PRO) y estandarización de corchetes de capturas.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @grant        none
@@ -42,27 +42,36 @@
 
         const titleStyle = "color: #0284c7; font-weight: bold; font-size: 14px;";
         const highlight = "background-color: #fef08a; font-weight: bold;";
+        const noteStyle = "color: #d97706; font-weight: bold; padding: 8px; background-color: #fef3c7; border-left: 4px solid #d97706; border-radius: 2px;";
 
         const formattedObj = objName.trim().replace(/\n/g, ', ').replace(/,\s*,/g, ',');
 
         if (lang === 'es') {
             htmlNext = `
+                <p>Se debe fusionar la rama del cambio (<strong>${cNum}</strong>) con la rama de PRE/PRO del repositorio de Git para el proyecto.</p>
+                <p><em>[Pegar Captura Correspondiente]</em></p>
+                <br>
+                <p style="${noteStyle}">⚠️ INDICACIÓN: Si es PRE se puede eliminar el texto a continuación. Si es PRO hay que dejarlo.</p>
                 <p style="${titleStyle}">ACTUALIZACIÓN EN GIT</p>
                 <ul>
                     <li>Actualizar toda la documentación relacionada (Manual de retén, functional analysis, test plan...)</li>
                     <li>Desde EasyB crear un Express Deployment Package (.pck) y subirlo a la carpeta /deploy/custom/ en la ruta GIT del proyecto.</li>
                     <li>Desde EasyB exportar la aplicación en modo texto y subir los objetos modificados a la carpeta /deploy/custom/.</li>
                 </ul>
-                <p><em>[PEGAR CAPTURA DE GIT AQUÍ]</em></p>`;
+                <p><em>[Pegar Captura Correspondiente]</em></p>`;
         } else {
             htmlNext = `
+                <p>The change branch (<strong>${cNum}</strong>) must be merged with the PRE/PRO branch of the project's Git repository.</p>
+                <p><em>[Paste Corresponding Screenshot]</em></p>
+                <br>
+                <p style="${noteStyle}">⚠️ NOTE: If it is PRE, the following text can be deleted. If it is PRO, it must be kept.</p>
                 <p style="${titleStyle}">GIT UPDATE</p>
                 <ul>
                     <li>Update all the related documentation (Manual de retén, functional analysis, test plan...)</li>
                     <li>From EasyB create an Expres Deployment Package (.pck) and upload to folder /deploy/custom/ in the project GIT route.</li>
                     <li>From EasyB export the application in text mode and upload to folder /deploy/custom/ with your modified objects.</li>
                 </ul>
-                <p><em>[PEGAR CAPTURA DE GIT AQUÍ]</em></p>`;
+                <p><em>[Paste Corresponding Screenshot]</em></p>`;
         }
 
         switch (type) {
@@ -76,7 +85,7 @@
                             <li>Exportar la versión antigua y guardarla en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                             <li>Se crea rama en GIT del cambio basada en PRE/PRO (depende el cambio si es en pre o en pro).</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
+                        <p><em>[Pegar Captura Correspondiente]</em></p>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Acciones de Implementación</p>
                         <ul>
@@ -85,10 +94,9 @@
                             <li>Importar la nueva vista / objeto(s): <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
                             <li>Asegurarse de que queden en modo "Solo lectura" (Read Only); si no, hacer CheckIn.</li>
                             <li>Activar la aplicación.</li>
-                            <li>Comprobar en el ApplicationService.log la correcta compilación.</li>
                             <li>Notificar el fin de la intervención por el canal wg-OnGoingChanges.</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURA DEL AS LOG]</em></p>`;
+                        <p><em>[Pegar Captura Correspondiente]</em></p>`;
                     htmlFall = `
                         <p style="${titleStyle}">Plan de Marcha Atrás (Fallback)</p>
                         <p>Si la intervención debe revertirse en <span style="${highlight}">${serverName}</span>:</p>
@@ -96,7 +104,7 @@
                             <li><strong>Opción 1 (Backup AD):</strong> Acceder a localhost/AD > pestaña Backup > Restaurar backup anterior.</li>
                             <li><strong>Opción 2 (Manual EasyB):</strong> Importar la versión antigua de <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn y Activar la aplicación.</li>
                         </ul>`;
-                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si se generan errores.</p>`;
+                    htmlSpec = `<p>Comprobar en el ApplicationService.log la correcta compilación.</p>`;
                     htmlCheck = `<p>Probar la operativa afectada siguiendo el plan de pruebas acordado con el cliente.</p>`;
                 } else {
                     htmlPrev = `
@@ -107,7 +115,7 @@
                             <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                             <li>Create GIT branch of the change based on PRE/PRO (depending on whether the change is in PRE or PRO).</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
+                        <p><em>[Paste Corresponding Screenshot]</em></p>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Implementation Actions</p>
                         <ul>
@@ -116,10 +124,9 @@
                             <li>Import the new view / object(s): <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy.</li>
                             <li>Take care about the objects being in Read Only status, if not, do CheckIn.</li>
                             <li>Activate the application.</li>
-                            <li>Check in ApplicationService.log the correct compilation.</li>
                             <li>Notify using wg-OnGoingChanges Teams channel the end of the intervention.</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURA DEL AS LOG]</em></p>`;
+                        <p><em>[Paste Corresponding Screenshot]</em></p>`;
                     htmlFall = `
                         <p style="${titleStyle}">Fallback Actions</p>
                         <p>If intervention must be reverted in <span style="${highlight}">${serverName}</span>:</p>
@@ -127,7 +134,7 @@
                             <li><strong>Option 1 (AD Backup):</strong> Access localhost/AD > Backup tab > Restore previous backup.</li>
                             <li><strong>Option 2 (EasyB Manual):</strong> Import the old versions of <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Backup. CheckIn and Activate application.</li>
                         </ul>`;
-                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the changes generate errors.</p>`;
+                    htmlSpec = `<p>Check in ApplicationService.log the correct compilation.</p>`;
                     htmlCheck = `<p>Test the operative affected following the test plan agreed with customer.</p>`;
                 }
                 break;
@@ -142,7 +149,7 @@
                             <li>Exportar la versión antigua y guardarla en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                             <li>Se crea rama en GIT del cambio basada en PRE/PRO (depende el cambio si es en pre o en pro).</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
+                        <p><em>[Pegar Captura Correspondiente]</em></p>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Acciones de Implementación</p>
                         <ul>
@@ -150,17 +157,16 @@
                             <li>Desde EasyB, ir a la pantalla correspondiente de la aplicación <strong>${appName}</strong>.</li>
                             <li>Importar la nueva query / objeto(s): <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
                             <li>Asegurarse de que queden en modo "Solo lectura"; si no, hacer CheckIn.</li>
-                            <li>Comprobar en el ApplicationService.log la correcta compilación.</li>
                             <li>Notificar el fin de la intervención por el canal wg-OnGoingChanges.</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURA DEL AS LOG AQUÍ]</em></p>`;
+                        <p><em>[Pegar Captura Correspondiente]</em></p>`;
                     htmlFall = `
                         <p style="${titleStyle}">Plan de Marcha Atrás (Fallback)</p>
                         <ul>
                             <li><strong>Opción 1:</strong> Acceder a localhost/AD > pestaña Backup > Restaurar backup anterior.</li>
                             <li><strong>Opción 2:</strong> Importar la versión antigua de <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn.</li>
                         </ul>`;
-                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si se generan errores.</p>`;
+                    htmlSpec = `<p>Comprobar en el ApplicationService.log la correcta compilación.</p>`;
                     htmlCheck = `<p>Probar la operativa afectada siguiendo el plan de pruebas acordado con el cliente.</p>`;
                 } else {
                     htmlPrev = `
@@ -171,7 +177,7 @@
                             <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                             <li>Create GIT branch of the change based on PRE/PRO (depending on whether the change is in PRE or PRO).</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
+                        <p><em>[Paste Corresponding Screenshot]</em></p>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Implementation Actions</p>
                         <ul>
@@ -179,17 +185,16 @@
                             <li>From EasyB go to the corresponding screen of application <strong>${appName}</strong>.</li>
                             <li>Import the new query / object(s): <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy.</li>
                             <li>Take care about the objects being in Read Only status, if not, do CheckIn.</li>
-                            <li>Check in ApplicationService.log the correct compilation.</li>
                             <li>Notify using wg-OnGoingChanges Teams channel the end of the intervention.</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURA DEL AS LOG AQUÍ]</em></p>`;
+                        <p><em>[Paste Corresponding Screenshot]</em></p>`;
                     htmlFall = `
                         <p style="${titleStyle}">Fallback Actions</p>
                         <ul>
                             <li><strong>Option 1:</strong> Access localhost/AD > Backup tab > Restore previous backup.</li>
                             <li><strong>Option 2:</strong> Import the old versions of <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Backup. CheckIn.</li>
                         </ul>`;
-                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the changes generate errors.</p>`;
+                    htmlSpec = `<p>Check in ApplicationService.log the correct compilation.</p>`;
                     htmlCheck = `<p>Test the operative affected following the test plan agreed with customer.</p>`;
                 }
                 break;
@@ -212,17 +217,16 @@
                             <li>Desde EasyB, ir a la pantalla correspondiente de la aplicación <strong>${appName}</strong>.</li>
                             <li>Importar el nuevo WF / objeto(s): <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Deploy. Seleccionar solo los elementos a modificar.</li>
                             <li>Asegurarse de que queden en modo "Solo lectura"; si no, hacer CheckIn.</li>
-                            <li>Comprobar en el ApplicationService.log la correcta compilación.</li>
                             <li>Notificar el fin de la intervención por el canal wg-OnGoingChanges.</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURA DEL AS LOG AQUÍ]</em></p>`;
+                        <p><em>[Pegar Captura Correspondiente]</em></p>`;
                     htmlFall = `
                         <p style="${titleStyle}">Plan de Marcha Atrás (Fallback)</p>
                         <ul>
                             <li><strong>Opción 1:</strong> Acceder a localhost/AD > pestaña Backup > Restaurar backup anterior.</li>
                             <li><strong>Opción 2:</strong> Importar la versión antigua de <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn.</li>
                         </ul>`;
-                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si se generan errores.</p>`;
+                    htmlSpec = `<p>Comprobar en el ApplicationService.log la correcta compilación.</p>`;
                     htmlCheck = `
                         <p>Probar la operativa afectada siguiendo el plan de pruebas.</p>
                         <p>Es aconsejable activar la traza web de EasyWMS (EasyWMS Web trace).</p>`;
@@ -243,17 +247,16 @@
                             <li>From EasyB go to the corresponding screen of application <strong>${appName}</strong>.</li>
                             <li>Import the new WF / object(s): <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy. Select only elements to modify.</li>
                             <li>Take care about the objects being in Read Only status, if not, do CheckIn.</li>
-                            <li>Check in ApplicationService.log the correct compilation.</li>
                             <li>Notify using wg-OnGoingChanges Teams channel the end of the intervention.</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURA DEL AS LOG AQUÍ]</em></p>`;
+                        <p><em>[Paste Corresponding Screenshot]</em></p>`;
                     htmlFall = `
                         <p style="${titleStyle}">Fallback Actions</p>
                         <ul>
                             <li><strong>Option 1:</strong> Access localhost/AD > Backup tab > Restore previous backup.</li>
                             <li><strong>Option 2:</strong> Import the old versions of <strong>${formattedObj}</strong> from C:\\TEMP\\${cNum}\\Backup. CheckIn.</li>
                         </ul>`;
-                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the changes generate errors.</p>`;
+                    htmlSpec = `<p>Check in ApplicationService.log the correct compilation.</p>`;
                     htmlCheck = `
                         <p>Test the operative affected following the test plan.</p>
                         <p>Is advisable activate EasyWMS Web trace from ApplicationService web interface.</p>`;
@@ -278,21 +281,18 @@
                             <li>Desde EasyB, ir a la pantalla correspondiente de la aplicación <strong>${appName}</strong>.</li>
                             <li>Importar el nuevo WF / objeto(s): <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
                             <li>Asegurarse de que queden en modo "Solo lectura"; si no, hacer CheckIn.</li>
-                            <li>Comprobar en el ApplicationService.log la correcta compilación.</li>
                             <li><strong>[CASO ERRORES / COMPILACIÓN]:</strong> Parar IIS. Borrar el directorio <em>C:\\Windows\\temp\\Mecalux</em>. Arrancar IIS.</li>
                             <li>Arrancar los Jobs. Comprobar el ApplicationService.log para asegurar que IIS arranca sin problemas.</li>
                             <li>Una vez arrancado, la instalación puede reanudar la actividad. Notificar por wg-OnGoingChanges.</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURA DEL AS LOG / JOBS AQUÍ]</em></p>`;
+                        <p><em>[Pegar Captura Correspondiente]</em></p>`;
                     htmlFall = `
                         <p style="${titleStyle}">Plan de Marcha Atrás (Fallback)</p>
                         <ul>
                             <li><strong>Opción 1:</strong> Parar Jobs. Acceder a localhost/AD > Restaurar backup anterior. Arrancar Jobs de nuevo.</li>
                             <li><strong>Opción 2:</strong> Parar Jobs. Importar la versión antigua de <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn. Parar IIS > Borrar carpeta Temp > Arrancar IIS > Arrancar Jobs.</li>
                         </ul>`;
-                    htmlSpec = `
-                        <p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si se generan errores.</p>
-                        <p>Si existen errores de compilación, el sistema debe pararse y realizar las acciones descritas (limpieza de Temp e IIS).</p>`;
+                    htmlSpec = `<p>Comprobar en el ApplicationService.log la correcta compilación.</p>`;
                     htmlCheck = `
                         <p>Probar la operativa afectada siguiendo el plan de pruebas.</p>
                         <p>Es aconsejable activar la traza web de EasyWMS (EasyWMS Web trace).</p>`;
@@ -313,21 +313,18 @@
                             <li>From EasyB go to the corresponding screen of application <strong>${appName}</strong>.</li>
                             <li>Import the new WF / object(s): <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy.</li>
                             <li>Take care about the objects being in Read Only status, if not, do CheckIn.</li>
-                            <li>Check in ApplicationService.log the correct compilation.</li>
                             <li><strong>[ERRORS / COMPILATION CASE]:</strong> Stop IIS. Remove directory <em>C:\\Windows\\temp\\Mecalux</em>. Start IIS.</li>
                             <li>Start the jobs. Check ApplicationService.log to be sure IIS is starting without problems.</li>
                             <li>Once started, facility can be started again. Notify wg-OnGoingChanges.</li>
                         </ul>
-                        <p><em>[PEGAR CAPTURA DEL AS LOG / JOBS AQUÍ]</em></p>`;
+                        <p><em>[Paste Corresponding Screenshot]</em></p>`;
                     htmlFall = `
                         <p style="${titleStyle}">Fallback Actions</p>
                         <ul>
                             <li><strong>Option 1:</strong> Stop jobs. Access localhost/AD > Restore previous backup. Start jobs again.</li>
                             <li><strong>Option 2:</strong> Stop jobs. Import the old versions of <strong>${formattedObj}</strong> from C:\\TEMP\\${cNum}\\Backup. CheckIn. Stop IIS > Remove Temp > Start IIS > Start jobs.</li>
                         </ul>`;
-                    htmlSpec = `
-                        <p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the changes generate errors.</p>
-                        <p>If compilation errors exist, system should be stopped and perform actions described.</p>`;
+                    htmlSpec = `<p>Check in ApplicationService.log the correct compilation.</p>`;
                     htmlCheck = `
                         <p>Test the operative affected following the test plan.</p>
                         <p>Is advisable activate EasyWMS Web trace from ApplicationService web interface.</p>`;
@@ -337,16 +334,16 @@
             case "REPORT":
             case "RESOURCE":
                 if (lang === 'es') {
-                    htmlPrev = `<p style="${titleStyle}">Acciones Previas</p><ul><li>Preparar los objetos: <strong>${formattedObj}</strong> en C:\\TEMP\\${cNum}.</li><li>Se crea rama en GIT del cambio basada en PRE/PRO (depende el cambio si es en pre o en pro).</li></ul>`;
-                    htmlImpl = `<p style="${titleStyle}">Acciones de Implementación</p><ul><li>Importar <strong>${formattedObj}</strong> en ${appName} sobre el servidor <span style="${highlight}">${serverName}</span>.</li></ul>`;
+                    htmlPrev = `<p style="${titleStyle}">Acciones Previas</p><ul><li>Preparar los objetos: <strong>${formattedObj}</strong> en C:\\TEMP\\${cNum}.</li><li>Se crea rama en GIT del cambio basada en PRE/PRO (depende el cambio si es en pre o en pro).</li></ul><p><em>[Pegar Captura Correspondiente]</em></p>`;
+                    htmlImpl = `<p style="${titleStyle}">Acciones de Implementación</p><ul><li>Importar <strong>${formattedObj}</strong> en ${appName} sobre el servidor <span style="${highlight}">${serverName}</span>.</li></ul><p><em>[Pegar Captura Correspondiente]</em></p>`;
                     htmlFall = `<p style="${titleStyle}">Plan de Marcha Atrás</p><ul><li>Restaurar versiones anteriores de <strong>${formattedObj}</strong>.</li></ul>`;
-                    htmlSpec = `<p>Comprobar errores.</p>`;
+                    htmlSpec = `<p>Comprobar en el ApplicationService.log la correcta compilación.</p>`;
                     htmlCheck = `<p>Validar el funcionamiento.</p>`;
                 } else {
-                    htmlPrev = `<p style="${titleStyle}">Previous Actions</p><ul><li>Prepare objects: <strong>${formattedObj}</strong> in C:\\TEMP\\${cNum}.</li><li>Create GIT branch of the change based on PRE/PRO (depending on whether the change is in PRE or PRO).</li></ul>`;
-                    htmlImpl = `<p style="${titleStyle}">Implementation Actions</p><ul><li>Import <strong>${formattedObj}</strong> in ${appName} on server <span style="${highlight}">${serverName}</span>.</li></ul>`;
+                    htmlPrev = `<p style="${titleStyle}">Previous Actions</p><ul><li>Prepare objects: <strong>${formattedObj}</strong> in C:\\TEMP\\${cNum}.</li><li>Create GIT branch of the change based on PRE/PRO (depending on whether the change is in PRE or PRO).</li></ul><p><em>[Paste Corresponding Screenshot]</em></p>`;
+                    htmlImpl = `<p style="${titleStyle}">Implementation Actions</p><ul><li>Import <strong>${formattedObj}</strong> in ${appName} on server <span style="${highlight}">${serverName}</span>.</li></ul><p><em>[Paste Corresponding Screenshot]</em></p>`;
                     htmlFall = `<p style="${titleStyle}">Fallback Actions</p><ul><li>Restore previous versions of <strong>${formattedObj}</strong>.</li></ul>`;
-                    htmlSpec = `<p>Check for errors.</p>`;
+                    htmlSpec = `<p>Check in ApplicationService.log the correct compilation.</p>`;
                     htmlCheck = `<p>Validate functionality.</p>`;
                 }
                 break;
