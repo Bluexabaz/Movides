@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM - Change Templates Automator (Visual Panel)
 // @namespace    http://tampermonkey.net/
-// @version      2.0
-// @description  Generador en cascada con Interfaz Gráfica para rellenar campos de un Cambio según documentación oficial.
+// @version      2.1
+// @description  Generador con panel visual y BOTÓN FLOTANTE para rellenar campos de Cambio.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @grant        none
@@ -15,13 +15,17 @@
     // Función para obtener la instancia de CKEditor
     function getEditorByLabel(labelText) {
         if (typeof CKEDITOR === 'undefined') return null;
-        const labels = Array.from(document.querySelectorAll('.ibo-field--label, legend, .ibo-panel--header-title'));
+        const labels = Array.from(document.querySelectorAll('.ibo-field--label, legend, .ibo-panel--header-title, .ibo-tab-content'));
         const targetLabel = labels.find(l => l.innerText.trim().toLowerCase().includes(labelText.toLowerCase()));
         if (!targetLabel) return null;
-        const container = targetLabel.closest('.ibo-field, .ibo-panel, fieldset');
+        
+        // En modo edición a veces el contenedor cambia
+        const container = targetLabel.closest('.ibo-field, .ibo-panel, fieldset, .form_field');
         if (!container) return null;
+        
         const cke = container.querySelector('.cke');
         if (!cke) return null;
+        
         const id = cke.id.replace(/^cke_/, '');
         return CKEDITOR.instances[id] || null;
     }
@@ -29,23 +33,19 @@
     function getChangeNumber() {
         const titleMatch = document.title.match(/(C-\d{6,})/);
         if (titleMatch) return titleMatch[1];
-        const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
-        if (header && header.innerText.match(/(C-\d{6,})/)) {
-            return header.innerText.match(/(C-\d{6,})/)[1];
-        }
+        const pageText = document.body.innerText.match(/(C-\d{6,})/);
+        if (pageText) return pageText[1];
         return "[C-XXXXXX]";
     }
 
-    // Lógica para generar los textos según el tipo elegido
+    // Lógica para generar los textos
     function generateTexts(type, objName, appName, serverName) {
         const cNum = getChangeNumber();
         let htmlPrev = "", htmlImpl = "", htmlFall = "", htmlSpec = "", htmlCheck = "", htmlNext = "";
 
-        // Estilos base
         const titleStyle = "color: #0284c7; font-weight: bold; font-size: 14px;";
         const highlight = "background-color: #fef08a; font-weight: bold;";
 
-        // Textos comunes Next Actions / Git
         htmlNext = `
             <p style="${titleStyle}">GIT UPDATE</p>
             <ul>
@@ -95,7 +95,8 @@
                         <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
                         <li>Save the new query version in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
                         <li>Export old query version and save it in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
-                    </ul>`;
+                    </ul>
+                    <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
                 htmlImpl = `
                     <p style="${titleStyle}">Implementation Actions</p>
                     <ul>
@@ -243,7 +244,6 @@
                 break;
         }
 
-        // Inyectar en los editores correspondientes
         const edPrev = getEditorByLabel("Previous actions");
         if (edPrev) edPrev.setData(htmlPrev);
         
@@ -263,16 +263,13 @@
         if (edNext) edNext.setData(htmlNext);
     }
 
-    // Dibujar el panel visual interactivo
     function buildUI() {
         if (document.getElementById('meca-modal-overlay')) return;
 
-        // Overlay oscuro
         const overlay = document.createElement('div');
         overlay.id = 'meca-modal-overlay';
-        overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 9998; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px);';
+        overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px);';
 
-        // Panel principal
         const panel = document.createElement('div');
         panel.style.cssText = 'background: white; padding: 25px; border-radius: 8px; width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-family: sans-serif; position: relative;';
 
@@ -285,7 +282,6 @@
         title.innerText = '🚀 Generador de Cambios ITSM';
         title.style.cssText = 'margin-top: 0; color: #0284c7; font-size: 20px; margin-bottom: 20px;';
 
-        // Elementos del formulario
         const inputStyle = 'width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px;';
         const labelStyle = 'font-weight: bold; font-size: 13px; color: #333; display: block; margin-bottom: 5px;';
 
@@ -335,27 +331,33 @@
         document.body.appendChild(overlay);
     }
 
-    // Botón lanzador en la cabecera
     function injectLauncher() {
+        // Solo inyectar si la página contiene un número de Cambio (C-XXXXXX)
+        const isChange = document.title.match(/(C-\d{6,})/i) || document.body.innerText.match(/(C-\d{6,})/i);
+        if (!isChange) return;
+
         if (document.getElementById('mecalux-launcher-btn')) return;
 
-        const header = document.querySelector('.ibo-panel--header-title') || document.querySelector('.ibo-page-header--title');
-        if (!header) return;
-
-        buildUI(); // Construimos el panel oculto
+        buildUI(); 
 
         const btn = document.createElement('button');
         btn.id = 'mecalux-launcher-btn';
         btn.innerHTML = '🚀 Rellenar Cambio';
-        btn.style.cssText = 'margin-left: 20px; padding: 6px 12px; background-color: #0ea5e9; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
         
+        // ESTILO FLOTANTE FIJO (BOTTOM RIGHT)
+        btn.style.cssText = 'position: fixed; bottom: 30px; right: 30px; z-index: 9997; padding: 12px 20px; background-color: #0ea5e9; color: white; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s;';
+        
+        btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
+        btn.onmouseout = () => btn.style.transform = 'scale(1)';
+
         btn.onclick = (e) => {
             e.preventDefault();
             const overlay = document.getElementById('meca-modal-overlay');
             if (overlay) overlay.style.display = 'flex';
         };
 
-        header.appendChild(btn);
+        // Lo anclamos directamente al cuerpo de la página
+        document.body.appendChild(btn);
     }
 
     const obs = new MutationObserver(() => injectLauncher());
