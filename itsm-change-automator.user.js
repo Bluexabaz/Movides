@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM - Change Templates Automator (Visual Panel)
 // @namespace    http://tampermonkey.net/
-// @version      3.1
-// @description  Generador Bilingüe. Añadido soporte para múltiples objetos simultáneos en el mismo cambio.
+// @version      3.2
+// @description  Generador Bilingüe. Añadido paso de creación de rama GIT en Previous Actions.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @grant        none
@@ -43,7 +43,6 @@
         const titleStyle = "color: #0284c7; font-weight: bold; font-size: 14px;";
         const highlight = "background-color: #fef08a; font-weight: bold;";
 
-        // Formatear múltiples objetos: cambiar saltos de línea por comas
         const formattedObj = objName.trim().replace(/\n/g, ', ').replace(/,\s*,/g, ',');
 
         if (lang === 'es') {
@@ -75,6 +74,7 @@
                             <li>Comprobar versión y licencia de EasyB en <span style="${highlight}">${serverName}</span>.</li>
                             <li>Guardar la nueva versión en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
                             <li>Exportar la versión antigua y guardarla en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Se crea rama en GIT del cambio basada en PRE/PRO (depende el cambio si es en pre o en pro).</li>
                         </ul>
                         <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
                     htmlImpl = `
@@ -105,6 +105,7 @@
                             <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
                             <li>Save the new versions in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
                             <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Create GIT branch of the change based on PRE/PRO (depending on whether the change is in PRE or PRO).</li>
                         </ul>
                         <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
                     htmlImpl = `
@@ -139,6 +140,7 @@
                             <li>Comprobar versión y licencia de EasyB en <span style="${highlight}">${serverName}</span>.</li>
                             <li>Guardar la nueva versión en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
                             <li>Exportar la versión antigua y guardarla en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Se crea rama en GIT del cambio basada en PRE/PRO (depende el cambio si es en pre o en pro).</li>
                         </ul>
                         <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
                     htmlImpl = `
@@ -167,6 +169,7 @@
                             <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
                             <li>Save the new versions in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
                             <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Create GIT branch of the change based on PRE/PRO (depending on whether the change is in PRE or PRO).</li>
                         </ul>
                         <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
                     htmlImpl = `
@@ -199,6 +202,7 @@
                             <li>Comprobar versión y licencia de EasyB en <span style="${highlight}">${serverName}</span>.</li>
                             <li>Guardar las nuevas versiones en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
                             <li>Exportar las versiones antiguas y guardarlas en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Se crea rama en GIT del cambio basada en PRE/PRO (depende el cambio si es en pre o en pro).</li>
                         </ul>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Acciones de Implementación (Sin modificación de datos / Sin Parada)</p>
@@ -229,6 +233,7 @@
                             <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
                             <li>Save the new versions in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
                             <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Create GIT branch of the change based on PRE/PRO (depending on whether the change is in PRE or PRO).</li>
                         </ul>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Implementation Actions (Without Modifying Records)</p>
@@ -263,6 +268,7 @@
                             <li>Comprobar versión y licencia de EasyB en <span style="${highlight}">${serverName}</span>.</li>
                             <li>Guardar las nuevas versiones en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
                             <li>Exportar las versiones antiguas y guardarlas en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Se crea rama en GIT del cambio basada en PRE/PRO (depende el cambio si es en pre o en pro).</li>
                         </ul>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Acciones de Implementación (Modifica Datos - Parada Requerida)</p>
@@ -297,6 +303,7 @@
                             <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
                             <li>Save the new versions in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
                             <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Create GIT branch of the change based on PRE/PRO (depending on whether the change is in PRE or PRO).</li>
                         </ul>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Implementation Actions (Modifying Records - Stop Facility)</p>
@@ -329,15 +336,14 @@
 
             case "REPORT":
             case "RESOURCE":
-                // Por brevedad de código, asumen un comportamiento similar al resto en cuanto a formato
                 if (lang === 'es') {
-                    htmlPrev = `<p style="${titleStyle}">Acciones Previas</p><ul><li>Preparar los objetos: <strong>${formattedObj}</strong> en C:\\TEMP\\${cNum}.</li></ul>`;
+                    htmlPrev = `<p style="${titleStyle}">Acciones Previas</p><ul><li>Preparar los objetos: <strong>${formattedObj}</strong> en C:\\TEMP\\${cNum}.</li><li>Se crea rama en GIT del cambio basada en PRE/PRO (depende el cambio si es en pre o en pro).</li></ul>`;
                     htmlImpl = `<p style="${titleStyle}">Acciones de Implementación</p><ul><li>Importar <strong>${formattedObj}</strong> en ${appName} sobre el servidor <span style="${highlight}">${serverName}</span>.</li></ul>`;
                     htmlFall = `<p style="${titleStyle}">Plan de Marcha Atrás</p><ul><li>Restaurar versiones anteriores de <strong>${formattedObj}</strong>.</li></ul>`;
                     htmlSpec = `<p>Comprobar errores.</p>`;
                     htmlCheck = `<p>Validar el funcionamiento.</p>`;
                 } else {
-                    htmlPrev = `<p style="${titleStyle}">Previous Actions</p><ul><li>Prepare objects: <strong>${formattedObj}</strong> in C:\\TEMP\\${cNum}.</li></ul>`;
+                    htmlPrev = `<p style="${titleStyle}">Previous Actions</p><ul><li>Prepare objects: <strong>${formattedObj}</strong> in C:\\TEMP\\${cNum}.</li><li>Create GIT branch of the change based on PRE/PRO (depending on whether the change is in PRE or PRO).</li></ul>`;
                     htmlImpl = `<p style="${titleStyle}">Implementation Actions</p><ul><li>Import <strong>${formattedObj}</strong> in ${appName} on server <span style="${highlight}">${serverName}</span>.</li></ul>`;
                     htmlFall = `<p style="${titleStyle}">Fallback Actions</p><ul><li>Restore previous versions of <strong>${formattedObj}</strong>.</li></ul>`;
                     htmlSpec = `<p>Check for errors.</p>`;
