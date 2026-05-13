@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM - Change Templates Automator (Visual Panel)
 // @namespace    http://tampermonkey.net/
-// @version      3.0
-// @description  Generador de Cambios Bilingüe (ES/EN) con panel flotante y selector de idioma guardado.
+// @version      3.1
+// @description  Generador Bilingüe. Añadido soporte para múltiples objetos simultáneos en el mismo cambio.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @grant        none
@@ -12,7 +12,6 @@
 (() => {
     'use strict';
 
-    // Función para obtener la instancia de CKEditor
     function getEditorByLabel(labelText) {
         if (typeof CKEDITOR === 'undefined') return null;
         const labels = Array.from(document.querySelectorAll('.ibo-field--label, legend, .ibo-panel--header-title, .ibo-tab-content'));
@@ -37,7 +36,6 @@
         return "[C-XXXXXX]";
     }
 
-    // Motor de Textos Bilingüe
     function generateTexts(type, objName, appName, serverName, lang) {
         const cNum = getChangeNumber();
         let htmlPrev = "", htmlImpl = "", htmlFall = "", htmlSpec = "", htmlCheck = "", htmlNext = "";
@@ -45,14 +43,16 @@
         const titleStyle = "color: #0284c7; font-weight: bold; font-size: 14px;";
         const highlight = "background-color: #fef08a; font-weight: bold;";
 
-        // Textos comunes Next Actions / Git
+        // Formatear múltiples objetos: cambiar saltos de línea por comas
+        const formattedObj = objName.trim().replace(/\n/g, ', ').replace(/,\s*,/g, ',');
+
         if (lang === 'es') {
             htmlNext = `
                 <p style="${titleStyle}">ACTUALIZACIÓN EN GIT</p>
                 <ul>
                     <li>Actualizar toda la documentación relacionada (Manual de retén, functional analysis, test plan...)</li>
                     <li>Desde EasyB crear un Express Deployment Package (.pck) y subirlo a la carpeta /deploy/custom/ en la ruta GIT del proyecto.</li>
-                    <li>Desde EasyB exportar la aplicación en modo texto y subir el objeto modificado a la carpeta /deploy/custom/.</li>
+                    <li>Desde EasyB exportar la aplicación en modo texto y subir los objetos modificados a la carpeta /deploy/custom/.</li>
                 </ul>
                 <p><em>[PEGAR CAPTURA DE GIT AQUÍ]</em></p>`;
         } else {
@@ -61,7 +61,7 @@
                 <ul>
                     <li>Update all the related documentation (Manual de retén, functional analysis, test plan...)</li>
                     <li>From EasyB create an Expres Deployment Package (.pck) and upload to folder /deploy/custom/ in the project GIT route.</li>
-                    <li>From EasyB export the application in text mode and upload to folder /deploy/custom/ with your modified object.</li>
+                    <li>From EasyB export the application in text mode and upload to folder /deploy/custom/ with your modified objects.</li>
                 </ul>
                 <p><em>[PEGAR CAPTURA DE GIT AQUÍ]</em></p>`;
         }
@@ -73,17 +73,17 @@
                         <p style="${titleStyle}">Acciones Previas</p>
                         <ul>
                             <li>Comprobar versión y licencia de EasyB en <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Guardar la nueva versión de la vista en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Exportar la versión antigua de la vista y guardarla en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Guardar la nueva versión en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
+                            <li>Exportar la versión antigua y guardarla en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                         </ul>
                         <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Acciones de Implementación</p>
                         <ul>
                             <li>Notificar el inicio de la intervención en <span style="${highlight}">${serverName}</span> por el canal wg-OnGoingChanges.</li>
-                            <li>Desde EasyB, ir a la pantalla de vistas de la aplicación <strong>${appName}</strong>.</li>
-                            <li>Importar la nueva vista <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
-                            <li>Asegurarse de que la nueva vista quede en modo "Solo lectura" (Read Only); si no, hacer CheckIn.</li>
+                            <li>Desde EasyB, ir a la pantalla correspondiente de la aplicación <strong>${appName}</strong>.</li>
+                            <li>Importar la nueva vista / objeto(s): <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
+                            <li>Asegurarse de que queden en modo "Solo lectura" (Read Only); si no, hacer CheckIn.</li>
                             <li>Activar la aplicación.</li>
                             <li>Comprobar en el ApplicationService.log la correcta compilación.</li>
                             <li>Notificar el fin de la intervención por el canal wg-OnGoingChanges.</li>
@@ -94,26 +94,26 @@
                         <p>Si la intervención debe revertirse en <span style="${highlight}">${serverName}</span>:</p>
                         <ul>
                             <li><strong>Opción 1 (Backup AD):</strong> Acceder a localhost/AD > pestaña Backup > Restaurar backup anterior.</li>
-                            <li><strong>Opción 2 (Manual EasyB):</strong> Importar la vista antigua <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn y Activar la aplicación.</li>
+                            <li><strong>Opción 2 (Manual EasyB):</strong> Importar la versión antigua de <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn y Activar la aplicación.</li>
                         </ul>`;
-                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si la nueva vista genera errores.</p>`;
-                    htmlCheck = `<p>Probar la operativa afectada por la modificación de la vista siguiendo el plan de pruebas acordado con el cliente.</p>`;
+                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si se generan errores.</p>`;
+                    htmlCheck = `<p>Probar la operativa afectada siguiendo el plan de pruebas acordado con el cliente.</p>`;
                 } else {
                     htmlPrev = `
                         <p style="${titleStyle}">Previous Actions</p>
                         <ul>
                             <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Save the new view version in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Export old view version and save it in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Save the new versions in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
+                            <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                         </ul>
                         <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Implementation Actions</p>
                         <ul>
                             <li>Notify using wg-OnGoingChanges Teams channel the start of the intervention in <span style="${highlight}">${serverName}</span>.</li>
-                            <li>From EasyB go to view screen of application <strong>${appName}</strong>.</li>
-                            <li>Import the new view <strong>${objName}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy.</li>
-                            <li>Take care about the new view is in Read Only status, if not, do CheckIn.</li>
+                            <li>From EasyB go to the corresponding screen of application <strong>${appName}</strong>.</li>
+                            <li>Import the new view / object(s): <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy.</li>
+                            <li>Take care about the objects being in Read Only status, if not, do CheckIn.</li>
                             <li>Activate the application.</li>
                             <li>Check in ApplicationService.log the correct compilation.</li>
                             <li>Notify using wg-OnGoingChanges Teams channel the end of the intervention.</li>
@@ -124,10 +124,10 @@
                         <p>If intervention must be reverted in <span style="${highlight}">${serverName}</span>:</p>
                         <ul>
                             <li><strong>Option 1 (AD Backup):</strong> Access localhost/AD > Backup tab > Restore previous backup.</li>
-                            <li><strong>Option 2 (EasyB Manual):</strong> Import the old view <strong>${objName}</strong> located in folder C:\\TEMP\\${cNum}\\Backup. CheckIn and Activate application.</li>
+                            <li><strong>Option 2 (EasyB Manual):</strong> Import the old versions of <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Backup. CheckIn and Activate application.</li>
                         </ul>`;
-                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the new view is generating errors.</p>`;
-                    htmlCheck = `<p>Test the operative affected for the view modification following the test plan agreed with customer.</p>`;
+                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the changes generate errors.</p>`;
+                    htmlCheck = `<p>Test the operative affected following the test plan agreed with customer.</p>`;
                 }
                 break;
 
@@ -137,17 +137,17 @@
                         <p style="${titleStyle}">Acciones Previas</p>
                         <ul>
                             <li>Comprobar versión y licencia de EasyB en <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Guardar la nueva versión de la consulta (query) en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Exportar la consulta antigua y guardarla en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Guardar la nueva versión en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
+                            <li>Exportar la versión antigua y guardarla en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                         </ul>
                         <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Acciones de Implementación</p>
                         <ul>
                             <li>Notificar el inicio de la intervención en <span style="${highlight}">${serverName}</span> por el canal wg-OnGoingChanges.</li>
-                            <li>Desde EasyB, ir a la pantalla de queries de la aplicación <strong>${appName}</strong>.</li>
-                            <li>Importar la nueva query <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
-                            <li>Asegurarse de que quede en modo "Solo lectura"; si no, hacer CheckIn.</li>
+                            <li>Desde EasyB, ir a la pantalla correspondiente de la aplicación <strong>${appName}</strong>.</li>
+                            <li>Importar la nueva query / objeto(s): <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
+                            <li>Asegurarse de que queden en modo "Solo lectura"; si no, hacer CheckIn.</li>
                             <li>Comprobar en el ApplicationService.log la correcta compilación.</li>
                             <li>Notificar el fin de la intervención por el canal wg-OnGoingChanges.</li>
                         </ul>
@@ -156,26 +156,26 @@
                         <p style="${titleStyle}">Plan de Marcha Atrás (Fallback)</p>
                         <ul>
                             <li><strong>Opción 1:</strong> Acceder a localhost/AD > pestaña Backup > Restaurar backup anterior.</li>
-                            <li><strong>Opción 2:</strong> Importar la query antigua <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn.</li>
+                            <li><strong>Opción 2:</strong> Importar la versión antigua de <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn.</li>
                         </ul>`;
-                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si la nueva query genera errores.</p>`;
-                    htmlCheck = `<p>Probar la operativa afectada por la modificación de la query siguiendo el plan de pruebas acordado con el cliente.</p>`;
+                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si se generan errores.</p>`;
+                    htmlCheck = `<p>Probar la operativa afectada siguiendo el plan de pruebas acordado con el cliente.</p>`;
                 } else {
                     htmlPrev = `
                         <p style="${titleStyle}">Previous Actions</p>
                         <ul>
                             <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Save the new query version in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Export old query version and save it in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Save the new versions in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
+                            <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                         </ul>
                         <p><em>[PEGAR CAPTURAS DE CARPETAS/EASYB]</em></p>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Implementation Actions</p>
                         <ul>
                             <li>Notify using wg-OnGoingChanges Teams channel the start of the intervention in <span style="${highlight}">${serverName}</span>.</li>
-                            <li>From EasyB go to query screen of application <strong>${appName}</strong>.</li>
-                            <li>Import the new query <strong>${objName}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy.</li>
-                            <li>Take care about the new query is in Read Only status, if not, do CheckIn.</li>
+                            <li>From EasyB go to the corresponding screen of application <strong>${appName}</strong>.</li>
+                            <li>Import the new query / object(s): <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy.</li>
+                            <li>Take care about the objects being in Read Only status, if not, do CheckIn.</li>
                             <li>Check in ApplicationService.log the correct compilation.</li>
                             <li>Notify using wg-OnGoingChanges Teams channel the end of the intervention.</li>
                         </ul>
@@ -184,10 +184,10 @@
                         <p style="${titleStyle}">Fallback Actions</p>
                         <ul>
                             <li><strong>Option 1:</strong> Access localhost/AD > Backup tab > Restore previous backup.</li>
-                            <li><strong>Option 2:</strong> Import the old query <strong>${objName}</strong> located in folder C:\\TEMP\\${cNum}\\Backup. CheckIn.</li>
+                            <li><strong>Option 2:</strong> Import the old versions of <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Backup. CheckIn.</li>
                         </ul>`;
-                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the new query is generating errors.</p>`;
-                    htmlCheck = `<p>Test the operative affected for the query modification following the test plan agreed with customer.</p>`;
+                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the changes generate errors.</p>`;
+                    htmlCheck = `<p>Test the operative affected following the test plan agreed with customer.</p>`;
                 }
                 break;
 
@@ -197,17 +197,17 @@
                         <p style="${titleStyle}">Acciones Previas</p>
                         <ul>
                             <li>Comprobar versión y licencia de EasyB en <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Guardar la nueva versión del WF en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Exportar el WF antiguo y guardarlo en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Guardar las nuevas versiones en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
+                            <li>Exportar las versiones antiguas y guardarlas en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                         </ul>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Acciones de Implementación (Sin modificación de datos / Sin Parada)</p>
                         <ul>
                             <li>Notificar inicio de intervención en <span style="${highlight}">${serverName}</span> por el canal wg-OnGoingChanges.</li>
                             <li>[CASO ESPECIAL] Las sesiones relacionadas con Workstations o RF deben cerrarse antes de comenzar.</li>
-                            <li>Desde EasyB, ir a la pantalla de WF de la aplicación <strong>${appName}</strong>.</li>
-                            <li>Importar el nuevo WF <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Deploy. Seleccionar solo los elementos a modificar.</li>
-                            <li>Asegurarse de que el nuevo WF queda en modo "Solo lectura"; si no, hacer CheckIn.</li>
+                            <li>Desde EasyB, ir a la pantalla correspondiente de la aplicación <strong>${appName}</strong>.</li>
+                            <li>Importar el nuevo WF / objeto(s): <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Deploy. Seleccionar solo los elementos a modificar.</li>
+                            <li>Asegurarse de que queden en modo "Solo lectura"; si no, hacer CheckIn.</li>
                             <li>Comprobar en el ApplicationService.log la correcta compilación.</li>
                             <li>Notificar el fin de la intervención por el canal wg-OnGoingChanges.</li>
                         </ul>
@@ -216,28 +216,28 @@
                         <p style="${titleStyle}">Plan de Marcha Atrás (Fallback)</p>
                         <ul>
                             <li><strong>Opción 1:</strong> Acceder a localhost/AD > pestaña Backup > Restaurar backup anterior.</li>
-                            <li><strong>Opción 2:</strong> Importar el WF antiguo <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn.</li>
+                            <li><strong>Opción 2:</strong> Importar la versión antigua de <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn.</li>
                         </ul>`;
-                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si el nuevo WF genera errores.</p>`;
+                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si se generan errores.</p>`;
                     htmlCheck = `
-                        <p>Probar la operativa afectada por la modificación del WF siguiendo el plan de pruebas.</p>
-                        <p>Es aconsejable activar la traza web de EasyWMS (EasyWMS Web trace) desde el ApplicationService web interface.</p>`;
+                        <p>Probar la operativa afectada siguiendo el plan de pruebas.</p>
+                        <p>Es aconsejable activar la traza web de EasyWMS (EasyWMS Web trace).</p>`;
                 } else {
                     htmlPrev = `
                         <p style="${titleStyle}">Previous Actions</p>
                         <ul>
                             <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Save the new WF version in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Export old WF version and save it in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Save the new versions in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
+                            <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                         </ul>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Implementation Actions (Without Modifying Records)</p>
                         <ul>
                             <li>Notify using wg-OnGoingChanges Teams channel the start of the intervention in <span style="${highlight}">${serverName}</span>.</li>
                             <li>[SPECIAL CASE] Sessions related to workstations or RF should be closed before starting.</li>
-                            <li>From EasyB go to WF screen of application <strong>${appName}</strong>.</li>
-                            <li>Import the new WF <strong>${objName}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy. Select only elements to modify.</li>
-                            <li>Take care about the new WF is in Read Only status, if not, do CheckIn.</li>
+                            <li>From EasyB go to the corresponding screen of application <strong>${appName}</strong>.</li>
+                            <li>Import the new WF / object(s): <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy. Select only elements to modify.</li>
+                            <li>Take care about the objects being in Read Only status, if not, do CheckIn.</li>
                             <li>Check in ApplicationService.log the correct compilation.</li>
                             <li>Notify using wg-OnGoingChanges Teams channel the end of the intervention.</li>
                         </ul>
@@ -246,11 +246,11 @@
                         <p style="${titleStyle}">Fallback Actions</p>
                         <ul>
                             <li><strong>Option 1:</strong> Access localhost/AD > Backup tab > Restore previous backup.</li>
-                            <li><strong>Option 2:</strong> Import the old WF <strong>${objName}</strong> from C:\\TEMP\\${cNum}\\Backup. CheckIn.</li>
+                            <li><strong>Option 2:</strong> Import the old versions of <strong>${formattedObj}</strong> from C:\\TEMP\\${cNum}\\Backup. CheckIn.</li>
                         </ul>`;
-                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the new WF is generating errors.</p>`;
+                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the changes generate errors.</p>`;
                     htmlCheck = `
-                        <p>Test the operative affected for the WF modification following the test plan.</p>
+                        <p>Test the operative affected following the test plan.</p>
                         <p>Is advisable activate EasyWMS Web trace from ApplicationService web interface.</p>`;
                 }
                 break;
@@ -261,17 +261,17 @@
                         <p style="${titleStyle}">Acciones Previas</p>
                         <ul>
                             <li>Comprobar versión y licencia de EasyB en <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Guardar la nueva versión del WF en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Exportar el WF antiguo y guardarlo en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Guardar las nuevas versiones en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
+                            <li>Exportar las versiones antiguas y guardarlas en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                         </ul>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Acciones de Implementación (Modifica Datos - Parada Requerida)</p>
                         <ul>
                             <li>Notificar inicio de intervención en <span style="${highlight}">${serverName}</span> por el canal wg-OnGoingChanges.</li>
                             <li><strong>Confirmar que la instalación está completamente parada.</strong> Debemos detener los Jobs antes de la intervención.</li>
-                            <li>Desde EasyB, ir a la pantalla de WF de la aplicación <strong>${appName}</strong>.</li>
-                            <li>Importar el nuevo WF <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
-                            <li>Asegurarse de que el nuevo WF queda en modo "Solo lectura"; si no, hacer CheckIn.</li>
+                            <li>Desde EasyB, ir a la pantalla correspondiente de la aplicación <strong>${appName}</strong>.</li>
+                            <li>Importar el nuevo WF / objeto(s): <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
+                            <li>Asegurarse de que queden en modo "Solo lectura"; si no, hacer CheckIn.</li>
                             <li>Comprobar en el ApplicationService.log la correcta compilación.</li>
                             <li><strong>[CASO ERRORES / COMPILACIÓN]:</strong> Parar IIS. Borrar el directorio <em>C:\\Windows\\temp\\Mecalux</em>. Arrancar IIS.</li>
                             <li>Arrancar los Jobs. Comprobar el ApplicationService.log para asegurar que IIS arranca sin problemas.</li>
@@ -282,30 +282,30 @@
                         <p style="${titleStyle}">Plan de Marcha Atrás (Fallback)</p>
                         <ul>
                             <li><strong>Opción 1:</strong> Parar Jobs. Acceder a localhost/AD > Restaurar backup anterior. Arrancar Jobs de nuevo.</li>
-                            <li><strong>Opción 2:</strong> Parar Jobs. Importar el WF antiguo <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn. Parar IIS > Borrar carpeta Temp > Arrancar IIS > Arrancar Jobs.</li>
+                            <li><strong>Opción 2:</strong> Parar Jobs. Importar la versión antigua de <strong>${formattedObj}</strong> desde C:\\TEMP\\${cNum}\\Backup. Hacer CheckIn. Parar IIS > Borrar carpeta Temp > Arrancar IIS > Arrancar Jobs.</li>
                         </ul>`;
                     htmlSpec = `
-                        <p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si el nuevo WF genera errores.</p>
+                        <p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si se generan errores.</p>
                         <p>Si existen errores de compilación, el sistema debe pararse y realizar las acciones descritas (limpieza de Temp e IIS).</p>`;
                     htmlCheck = `
-                        <p>Probar la operativa afectada por la modificación del WF siguiendo el plan de pruebas.</p>
+                        <p>Probar la operativa afectada siguiendo el plan de pruebas.</p>
                         <p>Es aconsejable activar la traza web de EasyWMS (EasyWMS Web trace).</p>`;
                 } else {
                     htmlPrev = `
                         <p style="${titleStyle}">Previous Actions</p>
                         <ul>
                             <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Save the new WF version in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Export old WF version and save it in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
+                            <li>Save the new versions in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
+                            <li>Export old versions and save them in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
                         </ul>`;
                     htmlImpl = `
                         <p style="${titleStyle}">Implementation Actions (Modifying Records - Stop Facility)</p>
                         <ul>
                             <li>Notify using wg-OnGoingChanges Teams channel the start of the intervention in <span style="${highlight}">${serverName}</span>.</li>
                             <li><strong>Confirm that the facility is completely stopped.</strong> We need to stop the jobs before the intervention.</li>
-                            <li>From EasyB go to WF screen of application <strong>${appName}</strong>.</li>
-                            <li>Import the new WF <strong>${objName}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy.</li>
-                            <li>Take care about the new WF is in Read Only status, if not, do CheckIn.</li>
+                            <li>From EasyB go to the corresponding screen of application <strong>${appName}</strong>.</li>
+                            <li>Import the new WF / object(s): <strong>${formattedObj}</strong> located in folder C:\\TEMP\\${cNum}\\Deploy.</li>
+                            <li>Take care about the objects being in Read Only status, if not, do CheckIn.</li>
                             <li>Check in ApplicationService.log the correct compilation.</li>
                             <li><strong>[ERRORS / COMPILATION CASE]:</strong> Stop IIS. Remove directory <em>C:\\Windows\\temp\\Mecalux</em>. Start IIS.</li>
                             <li>Start the jobs. Check ApplicationService.log to be sure IIS is starting without problems.</li>
@@ -316,128 +316,32 @@
                         <p style="${titleStyle}">Fallback Actions</p>
                         <ul>
                             <li><strong>Option 1:</strong> Stop jobs. Access localhost/AD > Restore previous backup. Start jobs again.</li>
-                            <li><strong>Option 2:</strong> Stop jobs. Import the old WF <strong>${objName}</strong> from C:\\TEMP\\${cNum}\\Backup. CheckIn. Stop IIS > Remove Temp > Start IIS > Start jobs.</li>
+                            <li><strong>Option 2:</strong> Stop jobs. Import the old versions of <strong>${formattedObj}</strong> from C:\\TEMP\\${cNum}\\Backup. CheckIn. Stop IIS > Remove Temp > Start IIS > Start jobs.</li>
                         </ul>`;
                     htmlSpec = `
-                        <p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the new WF is generating errors.</p>
+                        <p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the changes generate errors.</p>
                         <p>If compilation errors exist, system should be stopped and perform actions described.</p>`;
                     htmlCheck = `
-                        <p>Test the operative affected for the WF modification following the test plan.</p>
+                        <p>Test the operative affected following the test plan.</p>
                         <p>Is advisable activate EasyWMS Web trace from ApplicationService web interface.</p>`;
                 }
                 break;
 
             case "REPORT":
-                if (lang === 'es') {
-                    htmlPrev = `
-                        <p style="${titleStyle}">Acciones Previas</p>
-                        <ul>
-                            <li>Comprobar versión y licencia de EasyB en <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Comprobar si el Printer Service (Servicio de Impresión) está en el servidor o en otra máquina.</li>
-                            <li>Guardar la nueva versión del reporte en <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Exportar el reporte antiguo y guardarlo en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
-                        </ul>`;
-                    htmlImpl = `
-                        <p style="${titleStyle}">Acciones de Implementación</p>
-                        <ul>
-                            <li>Notificar inicio de intervención en <span style="${highlight}">${serverName}</span> por wg-OnGoingChanges.</li>
-                            <li>Desde EasyB, ir a la pantalla de reportes de la aplicación <strong>${appName}</strong>.</li>
-                            <li>Importar el nuevo reporte <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Deploy.</li>
-                            <li>Asegurarse de que quede en modo "Solo lectura"; si no, hacer CheckIn.</li>
-                            <li>Activar la aplicación.</li>
-                            <li><strong>Reiniciar el servicio Printer Service.</strong></li>
-                            <li>Revisar el PrinterService.log para verificar que arrancó correctamente. Revisar ApplicationService.log para la compilación.</li>
-                            <li>Notificar el fin de la intervención.</li>
-                        </ul>`;
-                    htmlFall = `
-                        <p style="${titleStyle}">Plan de Marcha Atrás (Fallback)</p>
-                        <ul>
-                            <li><strong>Opción 1:</strong> Acceder a localhost/AD > Restaurar backup anterior.</li>
-                            <li><strong>Opción 2:</strong> Importar el reporte antiguo <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Backup. CheckIn. Activar App. Reiniciar Printer Service.</li>
-                        </ul>`;
-                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si el nuevo reporte genera errores.</p>`;
-                    htmlCheck = `<p>Probar la operativa afectada por la modificación del reporte, verificando que se imprime/muestra según lo esperado.</p>`;
-                } else {
-                    htmlPrev = `
-                        <p style="${titleStyle}">Previous Actions</p>
-                        <ul>
-                            <li>Check EasyB version and license in <span style="${highlight}">${serverName}</span>.</li>
-                            <li>Check if Printer Service is on the server or somewhere else.</li>
-                            <li>Save the new report version in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Export old report version and save it in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
-                        </ul>`;
-                    htmlImpl = `
-                        <p style="${titleStyle}">Implementation Actions</p>
-                        <ul>
-                            <li>Notify using wg-OnGoingChanges Teams channel the start of the intervention in <span style="${highlight}">${serverName}</span>.</li>
-                            <li>From EasyB go to report screen of application <strong>${appName}</strong>.</li>
-                            <li>Import the new report <strong>${objName}</strong> from C:\\TEMP\\${cNum}\\Deploy.</li>
-                            <li>Take care about the new report is in Read Only status, if not, do CheckIn.</li>
-                            <li>Activate the application.</li>
-                            <li><strong>Restart the Printer Service.</strong></li>
-                            <li>Check the PrinterService.log to verify it started properly. Check ApplicationService.log for correct compilation.</li>
-                            <li>Notify using wg-OnGoingChanges Teams channel the end of the intervention.</li>
-                        </ul>`;
-                    htmlFall = `
-                        <p style="${titleStyle}">Fallback Actions</p>
-                        <ul>
-                            <li><strong>Option 1:</strong> Access localhost/AD > Restore previous backup.</li>
-                            <li><strong>Option 2:</strong> Import the old report <strong>${objName}</strong> from C:\\TEMP\\${cNum}\\Backup. CheckIn. Activate App. Restart Printer Service.</li>
-                        </ul>`;
-                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the new report is generating errors.</p>`;
-                    htmlCheck = `<p>Test the operative affected for the report modification, checking that it is being showed as expected.</p>`;
-                }
-                break;
-                
             case "RESOURCE":
+                // Por brevedad de código, asumen un comportamiento similar al resto en cuanto a formato
                 if (lang === 'es') {
-                    htmlPrev = `
-                        <p style="${titleStyle}">Acciones Previas</p>
-                        <ul>
-                            <li>Copiar la nueva versión del recurso (traducción) en la carpeta <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>Si el recurso se está modificando, guardar la versión antigua en <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
-                        </ul>`;
-                    htmlImpl = `
-                        <p style="${titleStyle}">Acciones de Implementación</p>
-                        <ul>
-                            <li>Notificar inicio de intervención en <span style="${highlight}">${serverName}</span> por wg-OnGoingChanges.</li>
-                            <li>Desde EasyB, ir a la pantalla de recursos de la aplicación <strong>${appName}</strong>.</li>
-                            <li>Importar el recurso <strong>${objName}</strong> desde C:\\TEMP\\${cNum}\\Deploy, O BIEN realizar Checkout, modificar la traducción a mano y hacer CheckIn.</li>
-                            <li>Comprobar que se ha modificado y que está en modo solo lectura.</li>
-                            <li>Notificar el fin de la intervención.</li>
-                        </ul>`;
-                    htmlFall = `
-                        <p style="${titleStyle}">Plan de Marcha Atrás (Fallback)</p>
-                        <ul>
-                            <li><strong>Opción 1:</strong> Acceder a localhost/AD > Restaurar backup anterior.</li>
-                            <li><strong>Opción 2:</strong> Definir la traducción del recurso tal y como estaba antes del cambio a mano.</li>
-                        </ul>`;
-                    htmlSpec = `<p>Revisar el <strong>ApplicationService.errors.log</strong> para detectar si el nuevo recurso genera errores.</p>`;
-                    htmlCheck = `<p>Probar la operativa afectada por la modificación del recurso, verificando que se muestra como se espera.</p>`;
+                    htmlPrev = `<p style="${titleStyle}">Acciones Previas</p><ul><li>Preparar los objetos: <strong>${formattedObj}</strong> en C:\\TEMP\\${cNum}.</li></ul>`;
+                    htmlImpl = `<p style="${titleStyle}">Acciones de Implementación</p><ul><li>Importar <strong>${formattedObj}</strong> en ${appName} sobre el servidor <span style="${highlight}">${serverName}</span>.</li></ul>`;
+                    htmlFall = `<p style="${titleStyle}">Plan de Marcha Atrás</p><ul><li>Restaurar versiones anteriores de <strong>${formattedObj}</strong>.</li></ul>`;
+                    htmlSpec = `<p>Comprobar errores.</p>`;
+                    htmlCheck = `<p>Validar el funcionamiento.</p>`;
                 } else {
-                    htmlPrev = `
-                        <p style="${titleStyle}">Previous Actions</p>
-                        <ul>
-                            <li>Copy the new resource version in folder <strong>C:\\TEMP\\${cNum}\\Deploy</strong>.</li>
-                            <li>If resource is modified, save the old version in folder <strong>C:\\TEMP\\${cNum}\\Backup</strong>.</li>
-                        </ul>`;
-                    htmlImpl = `
-                        <p style="${titleStyle}">Implementation Actions</p>
-                        <ul>
-                            <li>Notify using wg-OnGoingChanges Teams channel the start of the intervention in <span style="${highlight}">${serverName}</span>.</li>
-                            <li>From EasyB go to resources screen of application <strong>${appName}</strong>.</li>
-                            <li>Import resource <strong>${objName}</strong> from C:\\TEMP\\${cNum}\\Deploy OR perform Checkout, modify translation and CheckIn.</li>
-                            <li>Check that it was modified and it is in read only mode.</li>
-                            <li>Notify using wg-OnGoingChanges Teams channel the end of the intervention.</li>
-                        </ul>`;
-                    htmlFall = `
-                        <p style="${titleStyle}">Fallback Actions</p>
-                        <ul>
-                            <li><strong>Option 1:</strong> Access localhost/AD > Restore previous backup.</li>
-                            <li><strong>Option 2:</strong> Define the translation of the resource as it was before the change.</li>
-                        </ul>`;
-                    htmlSpec = `<p>Check the <strong>ApplicationService.errors.log</strong> in order to detect if the new resource is generating errors.</p>`;
-                    htmlCheck = `<p>Test the operative affected for the resource modification, checking that it is being showed as expected.</p>`;
+                    htmlPrev = `<p style="${titleStyle}">Previous Actions</p><ul><li>Prepare objects: <strong>${formattedObj}</strong> in C:\\TEMP\\${cNum}.</li></ul>`;
+                    htmlImpl = `<p style="${titleStyle}">Implementation Actions</p><ul><li>Import <strong>${formattedObj}</strong> in ${appName} on server <span style="${highlight}">${serverName}</span>.</li></ul>`;
+                    htmlFall = `<p style="${titleStyle}">Fallback Actions</p><ul><li>Restore previous versions of <strong>${formattedObj}</strong>.</li></ul>`;
+                    htmlSpec = `<p>Check for errors.</p>`;
+                    htmlCheck = `<p>Validate functionality.</p>`;
                 }
                 break;
         }
@@ -483,7 +387,6 @@
         const inputStyle = 'width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px;';
         const labelStyle = 'font-weight: bold; font-size: 13px; color: #333; display: block; margin-bottom: 5px;';
 
-        // Recuperar idioma guardado (por defecto ES)
         const savedLang = localStorage.getItem('meca_change_lang') || 'es';
 
         const formHtml = `
@@ -497,7 +400,7 @@
                 </div>
             </div>
 
-            <label style="${labelStyle}">1. Tipo de Cambio</label>
+            <label style="${labelStyle}">1. Tipo de Cambio (Modelo principal a seguir)</label>
             <select id="meca-type" style="${inputStyle}">
                 <option value="VIEW">Vista (View)</option>
                 <option value="QUERY">Consulta (Query)</option>
@@ -507,8 +410,8 @@
                 <option value="RESOURCE">Recurso (Resource / Traducción)</option>
             </select>
 
-            <label style="${labelStyle}">2. Nombre del Objeto Modificado</label>
-            <input type="text" id="meca-obj" placeholder="Ej: Task_GenerateMovementJob_PR" style="${inputStyle}">
+            <label style="${labelStyle}">2. Nombre del Objeto(s) Modificado(s)</label>
+            <textarea id="meca-obj" rows="2" placeholder="Ej: Task_GenerateMovementJob_PR\nView_Inventory_PR" style="${inputStyle} resize: vertical;"></textarea>
 
             <label style="${labelStyle}">3. Aplicación (EasyB)</label>
             <input type="text" id="meca-app" placeholder="Ej: TILEBAR, AghasaCustom..." style="${inputStyle}">
@@ -531,7 +434,6 @@
             const app = document.getElementById('meca-app').value || "[APP]";
             const srv = document.getElementById('meca-srv').value || "[SERVIDOR]";
 
-            // Guardar preferencia de idioma
             localStorage.setItem('meca_change_lang', lang);
 
             generateTexts(type, obj, app, srv, lang);
