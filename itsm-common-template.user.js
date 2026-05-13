@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      4.1
-// @description  Selector de plantillas. Añadida unificación de incidencias y ajustes en observaciones (N/A).
+// @version      4.2
+// @description  Selector de plantillas. ¡NUEVO! Cortafuegos añadido para desactivarse en tickets de Cambio (C-XXXXXX) y evitar conflictos.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
@@ -20,6 +20,17 @@
     const pubStyle = `background-color: #eaf3f8; padding: 15px; border-radius: 4px; border-left: 4px solid #3b82f6; font-family: sans-serif; color: #333; line-height: 1.5;`;
     const PUBLIC_WRAP_SEL = '[data-attribute-code="public_log"]';
     const LANG_KEY = 'itsm_publiclog_lang';
+
+    /*********************************
+    * NUEVO: DETECTOR DE TICKETS DE CAMBIO
+    *********************************/
+    function isChangeTicket() {
+        // Buscamos si el título o la cabecera contiene "C-XXXXXX"
+        if (document.title.match(/(C-\d{6,})/i)) return true;
+        const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
+        if (header && header.innerText.match(/(C-\d{6,})/i)) return true;
+        return false;
+    }
 
     /*********************************
     * 2. DICCIONARIO DE PLANTILLAS
@@ -376,7 +387,7 @@
     }
 
     /*********************************
-    * MOTOR DE EXTRACCIÓN V4.1 (CON MEMORIA)
+    * MOTOR DE EXTRACCIÓN (CON MEMORIA)
     *********************************/
     function extractTicketData() {
         let ticketNum = "[NÚM. DEL CASO]";
@@ -437,6 +448,9 @@
     * 4. INYECCIÓN INTELIGENTE
     *********************************/
     function injectUI() {
+        // CORTAFUEGOS: Si estamos en un Cambio, abortamos la inyección de este script.
+        if (isChangeTicket()) return;
+
         let container = document.querySelector('.itsm-adv-public-templates');
 
         const isPublicLog = !!document.querySelector('[data-attribute-code="public_log"]');
@@ -606,6 +620,7 @@
     }
 
     const obs = new MutationObserver((muts) => {
+        if (isChangeTicket()) return; // CORTAFUEGOS
         let shouldCheck = false;
         for (const m of muts) {
             for (const n of m.addedNodes) {
@@ -623,6 +638,7 @@
     });
 
     function boot() {
+        if (isChangeTicket()) return; // APAGADO DE EMERGENCIA EN CAMBIOS
         obs.observe(document.body, { childList: true, subtree: true });
         bindEditors();
         setTimeout(extractTicketData, 1500); 
