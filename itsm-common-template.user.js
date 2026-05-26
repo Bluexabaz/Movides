@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ITSM – Common Template (Multilanguage)
 // @namespace    http://tampermonkey.net/
-// @version      4.2
-// @description  Selector de plantillas. ¡NUEVO! Cortafuegos añadido para desactivarse en tickets de Cambio (C-XXXXXX) y evitar conflictos.
+// @version      4.3
+// @description  Selector de plantillas. ¡NUEVO! Plantilla de monitorización con autocompletado inteligente del nombre del servidor.
 // @author       Fernando González Cienfuegos
 // @match        https://itsm.mecalux.com/pages/UI.php?*
 // @updateURL    https://raw.githubusercontent.com/Bluexabaz/Movides/main/itsm-common-template.user.js
@@ -22,10 +22,9 @@
     const LANG_KEY = 'itsm_publiclog_lang';
 
     /*********************************
-    * NUEVO: DETECTOR DE TICKETS DE CAMBIO
+    * CORTAFUEGOS: DETECTOR DE CAMBIOS
     *********************************/
     function isChangeTicket() {
-        // Buscamos si el título o la cabecera contiene "C-XXXXXX"
         if (document.title.match(/(C-\d{6,})/i)) return true;
         const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
         if (header && header.innerText.match(/(C-\d{6,})/i)) return true;
@@ -61,6 +60,15 @@
                     </ul>
                     <p>Le mantendremos informado/a sobre el avance de la revisión y cualquier acción correctiva que sea necesaria. En caso de que requiera coordinar algún detalle adicional, no dude en comunicarse con nosotros.</p>
                     <p>Agradecemos su colaboración y quedamos a su disposición para cualquier consulta.</p>
+                </div>`,
+            alerta_monitorizacion_mantenimiento: `
+                <div style="${pubStyle}">
+                    <p>Estimado cliente,</p>
+                    <p>Nos ponemos en contacto con usted para informarle de que nuestro sistema de monitorización ha detectado alertas preventivas que requieren tareas de mantenimiento en su instalación.</p>
+                    <p>Para garantizar el rendimiento óptimo del sistema y evitar cualquier posible impacto en la operativa, nuestro equipo técnico se va a conectar al servidor <strong>[NOMBRE DEL SERVIDOR]</strong> para llevar a cabo las acciones correspondientes (como la liberación de espacio o el mantenimiento de la base de datos y sus ficheros de trazas).</p>
+                    <p>No es necesaria ninguna acción por su parte. En cuanto finalicemos la intervención y confirmemos que todos los indicadores han vuelto a la normalidad, procederemos a cerrar este ticket.</p>
+                    <p>Si tiene alguna duda o consulta adicional, quedamos a su entera disposición.</p>
+                    <p>Un saludo,</p>
                 </div>`,
             unificar_incidencias: `
                 <div style="${pubStyle}">
@@ -220,6 +228,15 @@
                     </ul>
                     <p>We will keep you informed about the progress of the review and any corrective actions that may be necessary. Should you need to coordinate any additional details, please do not hesitate to contact us.</p>
                     <p>We appreciate your cooperation and remain at your disposal for any queries.</p>
+                </div>`,
+            alerta_monitorizacion_mantenimiento: `
+                <div style="${pubStyle}">
+                    <p>Dear customer,</p>
+                    <p>We are contacting you to inform you that our monitoring system has detected preventive alerts that require maintenance tasks in your facility.</p>
+                    <p>To ensure optimal system performance and prevent any potential impact on operations, our technical team will connect to the <strong>[SERVER NAME]</strong> server to carry out the corresponding actions (such as freeing up space or maintaining the database and its trace files).</p>
+                    <p>No action is required on your part. As soon as we finish the intervention and confirm that all indicators have returned to normal, we will proceed to close this ticket.</p>
+                    <p>If you have any questions or require further information, we remain at your disposal.</p>
+                    <p>Best regards,</p>
                 </div>`,
             unificar_incidencias: `
                 <div style="${pubStyle}">
@@ -387,12 +404,14 @@
     }
 
     /*********************************
-    * MOTOR DE EXTRACCIÓN (CON MEMORIA)
+    * MOTOR DE EXTRACCIÓN (V4.3 CON SERVIDOR)
     *********************************/
     function extractTicketData() {
         let ticketNum = "[NÚM. DEL CASO]";
         let callerName = "[NOMBRE DEL CUSTOMER]";
+        let serverName = "[NOMBRE DEL SERVIDOR]";
 
+        // 1. Extraer Número de Caso
         const fcHeaderMatch = document.body.innerText.match(/First Contact\s*-\s*(I-\d{6,})/i);
         const titleMatch = document.title.match(/(I-\d{6,})/);
         const header = document.querySelector('.ibo-page-header--title') || document.querySelector('.ibo-panel--header-title');
@@ -405,6 +424,7 @@
             ticketNum = header.innerText.match(/(I-\d{6,})/)[1];
         }
 
+        // 2. Extraer Caller
         let callerLinks = document.querySelectorAll('[data-attribute-code="caller_id"] a, [data-attribute-code="contact_id"] a');
         let foundCaller = false;
         
@@ -429,26 +449,44 @@
             }
         }
 
+        // 3. Extraer Servidor (para alertas de Monitorización)
+        // Busca en el texto de la página algo como "alert on the CI 'NOMBRE'" o "alerta en el CI 'NOMBRE'"
+        const serverMatch = document.body.innerText.match(/(?:alert on the CI|alerta en el CI)\s+'([^']+)'/i);
+        let foundServer = false;
+        
+        if (serverMatch && serverMatch[1]) {
+            serverName = serverMatch[1];
+            foundServer = true;
+        }
+
+        // 4. Memoria (Caller + Servidor)
+        let savedTicket = localStorage.getItem('itsm_memory_ticket');
+        
         if (foundCaller && ticketNum !== "[NÚM. DEL CASO]") {
             localStorage.setItem('itsm_memory_ticket', ticketNum);
             localStorage.setItem('itsm_memory_caller', callerName);
+            if (foundServer) {
+                localStorage.setItem('itsm_memory_server', serverName);
+            } else {
+                localStorage.removeItem('itsm_memory_server'); // Limpiar si no es alerta
+            }
         } else {
-            let savedTicket = localStorage.getItem('itsm_memory_ticket');
             let savedCaller = localStorage.getItem('itsm_memory_caller');
+            let savedServer = localStorage.getItem('itsm_memory_server');
             
-            if (savedTicket === ticketNum && savedCaller) {
-                callerName = savedCaller;
+            if (savedTicket === ticketNum) {
+                if (savedCaller) callerName = savedCaller;
+                if (savedServer) serverName = savedServer;
             }
         }
 
-        return { ticketNum, callerName };
+        return { ticketNum, callerName, serverName };
     }
 
     /*********************************
     * 4. INYECCIÓN INTELIGENTE
     *********************************/
     function injectUI() {
-        // CORTAFUEGOS: Si estamos en un Cambio, abortamos la inyección de este script.
         if (isChangeTicket()) return;
 
         let container = document.querySelector('.itsm-adv-public-templates');
@@ -526,6 +564,9 @@
                 <option value="solicitar_conexion">Pedir Confirmación</option>
                 <option value="informar_conexion_sin_confirmacion">Solo Informar (N/A)</option>
             </optgroup>
+            <optgroup label="Monitorización">
+                <option value="alerta_monitorizacion_mantenimiento">Alerta Preventiva (Mantenimiento)</option>
+            </optgroup>
             <optgroup label="Cierre / Unificación">
                 <option value="unificar_incidencias">Unificación por Duplicado</option>
             </optgroup>
@@ -575,6 +616,7 @@
                 let finalHtml = TPL[currentLang][val];
                 const ticketData = extractTicketData();
 
+                // Reemplazos habituales
                 finalHtml = finalHtml.replace(/\[NOMBRE DEL CUSTOMER\]/gi, ticketData.callerName);
                 finalHtml = finalHtml.replace(/\[CUSTOMER NAME\]/gi, ticketData.callerName);
                 finalHtml = finalHtml.replace(/\[NOMBRE Y APELLIDOS DEL CALLER\]/gi, ticketData.callerName);
@@ -582,6 +624,10 @@
                 finalHtml = finalHtml.replace(/\[NÚM\. DEL CASO\]/gi, ticketData.ticketNum);
                 finalHtml = finalHtml.replace(/\[CASE NUMBER\]/gi, ticketData.ticketNum);
                 finalHtml = finalHtml.replace(/\[I-XXXXXX\]/gi, ticketData.ticketNum);
+                
+                // Reemplazo especial para Servidor
+                finalHtml = finalHtml.replace(/\[NOMBRE DEL SERVIDOR\]/gi, ticketData.serverName);
+                finalHtml = finalHtml.replace(/\[SERVER NAME\]/gi, ticketData.serverName);
 
                 ed.setData(finalHtml);
             }
@@ -620,7 +666,7 @@
     }
 
     const obs = new MutationObserver((muts) => {
-        if (isChangeTicket()) return; // CORTAFUEGOS
+        if (isChangeTicket()) return;
         let shouldCheck = false;
         for (const m of muts) {
             for (const n of m.addedNodes) {
@@ -638,7 +684,7 @@
     });
 
     function boot() {
-        if (isChangeTicket()) return; // APAGADO DE EMERGENCIA EN CAMBIOS
+        if (isChangeTicket()) return;
         obs.observe(document.body, { childList: true, subtree: true });
         bindEditors();
         setTimeout(extractTicketData, 1500); 
