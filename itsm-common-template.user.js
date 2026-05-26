@@ -65,7 +65,7 @@
                 <div style="${pubStyle}">
                     <p>Estimado cliente,</p>
                     <p>Nos ponemos en contacto con usted para informarle de que nuestro sistema de monitorización ha detectado alertas preventivas que requieren tareas de mantenimiento en su instalación.</p>
-                    <p>Para garantizar el rendimiento óptimo del sistema y evitar cualquier posible impacto en la operativa, nuestro equipo técnico se va a conectar al servidor <strong>[NOMBRE DEL SERVIDOR]</strong> para llevar a cabo las acciones correspondientes (como la liberación de espacio o el mantenimiento de la base de datos y sus ficheros de trazas).</p>
+                    <p>Para garantizar el rendimiento óptimo del sistema y evitar cualquier posible impacto en la operativa, nuestro equipo técnico se va a conectar al servidor <strong>[NOMBRE DEL SERVIDOR]</strong> para llevar a cabo las acciones correspondientes.</p>
                     <p>No es necesaria ninguna acción por su parte. En cuanto finalicemos la intervención y confirmemos que todos los indicadores han vuelto a la normalidad, procederemos a cerrar este ticket.</p>
                     <p>Si tiene alguna duda o consulta adicional, quedamos a su entera disposición.</p>
                     <p>Un saludo,</p>
